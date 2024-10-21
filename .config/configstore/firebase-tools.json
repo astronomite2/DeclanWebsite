@@ -1,0 +1,37 @@
+{
+	"motd": {
+		"cloudBuildErrorAfter": 1594252800000,
+		"cloudBuildWarnAfter": 1590019200000,
+		"defaultNode10After": 1594252800000,
+		"minVersion": "3.0.5",
+		"node8DeploysDisabledAfter": 1613390400000,
+		"node8RuntimeDisabledAfter": 1615809600000,
+		"node8WarnAfter": 1600128000000,
+		"fetched": 1729540671621
+	},
+	"usage": true,
+	"analytics-uuid": "cf7d8cba-bb88-4d2a-b378-ba1052312de4",
+	"user": {
+		"iss": "accounts.google.com",
+		"azp": "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com",
+		"aud": "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com",
+		"sub": "102421323210497011746",
+		"email": "dboydmurphy@gmail.com",
+		"email_verified": true,
+		"at_hash": "sSG7Ak4jtvSnar_oq_HtBw",
+		"iat": 1729540684,
+		"exp": 1729544284
+	},
+	"tokens": {
+		"expires_at": 1729544284673,
+		"access_token": "ya29.a0AcM612wID-Xue08Z5k3d-fobUar33wpJ6uMdX-C6G7fiOlzm2Oar4pIdGymrn3-L94ln6P-Uz1vHmCllc77jNeyjZK0M-BtuSEuIf8o90rrc6jNQQpRcXO32PEnsMJzwQbLX_BxzMAucbkUcVavAAVJOXtmv2PCktfIXHv9ruBP2rgaCgYKAQkSARMSFQHGX2MiutUN8q2KNbVcYVJF4UAJBg0181",
+		"expires_in": 3599,
+		"refresh_token": "1//061zJYc9214LxCgYIARAAGAYSNwF-L9Ir_y5fpEOD-Opkhf9vO0aX6NA-c5RCHirdVZO6PjztBEMx7hH4DQKxkXRrflGu3ljnV4E",
+		"scope": "https://www.googleapis.com/auth/cloud-platform openid https://www.googleapis.com/auth/firebase https://www.googleapis.com/auth/cloudplatformprojects.readonly https://www.googleapis.com/auth/userinfo.email",
+		"token_type": "Bearer",
+		"id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjczZTI1Zjk3ODkxMTljNzg3NWQ1ODA4N2E3OGFjMjNmNWVmMmVkYTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJhY2NvdW50cy5nb29nbGUuY29tIiwiYXpwIjoiNTYzNTg0MzM1ODY5LWZncmhnbWQ0N2JxbmVraWo1aThiNXByMDNobzg0OWU2LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwiYXVkIjoiNTYzNTg0MzM1ODY5LWZncmhnbWQ0N2JxbmVraWo1aThiNXByMDNobzg0OWU2LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwic3ViIjoiMTAyNDIxMzIzMjEwNDk3MDExNzQ2IiwiZW1haWwiOiJkYm95ZG11cnBoeUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6InNTRzdBazRqdHZTbmFyX29xX0h0QnciLCJpYXQiOjE3Mjk1NDA2ODQsImV4cCI6MTcyOTU0NDI4NH0.IlPlTjmdGKg-q7LraYJ9fW2gFNmH2Km1HvWZcOqM2x3kMuFVsUcZhpvVIqN4mSd7KfGHMjCKqtZJ4xjwGq3xacNAClthcX_MmVypNrUNzyBWPT2RsCAyG4kQmbasiQr9cZz7QwV291eNjVmWIy9C8AzT3KgwA1LWXi6dGO2v2qDYpeXHvs27SBcU3HDYlZZons2uIYL3sRfzJFaORRkSqujJ5Kh35Ovt_A5cmDBH5R4-XlAM_K79gYXrqcZ4hWIKWSt3xwJf9FgmklvsgMErAAQ_JsI20ljWBW1lN9pJzgGO_Wk3FbyI_ZP5iHrHjiRr9QMVCq9b9RXDL1N3TP_Xow"
+	},
+	"activeProjects": {
+		"/home/declan": "declanhub-f31ea"
+	}
+}
