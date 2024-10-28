@@ -30,6 +30,67 @@ const platformWidth = 100;
 const platformHeight = 20;
 const platformCount = 7;
 
+//Firebase Variables
+import { app } from "firebaseAPI.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+const db = getFirestore(app);
+
+// Leaderboard functionality
+async function getLeaderboardData() {
+    const leaderboardRef = collection(db, 'leaderboard');
+    const q = query(leaderboardRef, orderBy('score', 'desc'), limit(100));
+    
+    try {
+        const querySnapshot = await getDocs(q);
+        const leaderboardData = [];
+        querySnapshot.forEach((doc, index) => {
+            const data = doc.data();
+            leaderboardData.push({
+                rank: index + 1,
+                name: data.name,
+                score: data.score
+            });
+        });
+        return leaderboardData;
+    } catch (error) {
+        console.error("Error fetching leaderboard data:", error);
+        return [];
+    }
+}
+
+// Function to add new score to leaderboard
+async function addScoreToLeaderboard(playerName, score) {
+    try {
+        const leaderboardRef = collection(db, 'leaderboard');
+        await addDoc(leaderboardRef, {
+            name: playerName,
+            score: score,
+            timestamp: serverTimestamp()
+        });
+        updateLeaderboardDisplay();
+    } catch (error) {
+        console.error("Error adding score:", error);
+    }
+}
+
+// Update leaderboard display
+async function updateLeaderboardDisplay() {
+    const leaderboardData = await getLeaderboardData();
+    const leaderboardList = document.getElementById('leaderboardList');
+    leaderboardList.innerHTML = '';
+    
+    leaderboardData.forEach(entry => {
+        const entryElement = document.createElement('div');
+        entryElement.className = 'leaderboard-entry';
+        entryElement.innerHTML = `
+            <span class="rank">#${entry.rank}</span>
+            <span class="name">${entry.name}</span>
+            <span class="score">${entry.score}</span>
+        `;
+        leaderboardList.appendChild(entryElement);
+    });
+}
+
 // Generate initial platforms
 function generatePlatforms() {
     platforms = [];
@@ -83,6 +144,17 @@ function checkWallCollision() {
         gameOver = true;
         gameOverElement.style.display = 'block';
         finalScoreElement.textContent = score;
+    }
+}
+
+function submitScore() {
+    const playerName = document.getElementById('playerName').value.trim();
+    if (playerName) {
+        addScoreToLeaderboard(playerName, score);
+        // Disable submit button to prevent multiple submissions
+        document.querySelector('.submit-score button').disabled = true;
+    } else {
+        alert('Please enter your name');
     }
 }
 
@@ -186,10 +258,18 @@ function resetGame() {
     scoreElement.textContent = '0';
     gameOver = false;
     gameOverElement.style.display = 'none';
+    document.getElementById('playerName').value = ''; // Clear player name input
+    document.querySelector('.submit-score button').disabled = false; // Re-enable submit button
     generatePlatforms();
     gameLoop();
 }
 
-// Start game
-generatePlatforms();
-gameLoop();
+function initGame() {
+    generatePlatforms();
+    updateLeaderboardDisplay(); // Initial leaderboard load
+    gameLoop();
+}
+
+setInterval(updateLeaderboardDisplay, 30000);
+
+initGame();
