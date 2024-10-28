@@ -1,0 +1,119 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #4CAF50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    position: relative;
+}
+
+.game-container {
+    width: 800px;
+    background: white;
+    min-height: 600px;
+    position: relative;
+    border-left: 2px solid black;
+    border-right: 2px solid black;
+    overflow: hidden;
+    margin: 0 200px; /* Added margins for the green space */
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 600px;
+}
+
+.score {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.game-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: none;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid black;
+    z-index: 10;
+}
+
+.game-over button {
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+    background: #4CAF50;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.customization-button {
+    position: fixed;
+    left: 20px;
+    top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+    background: white;
+    border: 2px solid black;
+    border-radius: 5px;
+}
+
+.customization-menu {
+    position: fixed;
+    left: 20px;
+    top: 80px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid black;
+    display: none;
+    width: 160px; /* Fixed width to fit in margin */
+}
+
+.customization-menu.show {
+    display: block;
+}
+
+.color-input {
+    margin: 10px 0;
+}
+
+.color-input label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.color-input input {
+    width: calc(100% - 10px);
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+.update-color-btn {
+    width: 100%;
+    padding: 8px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.update-color-btn:hover {
+    background: #45a049;
+}

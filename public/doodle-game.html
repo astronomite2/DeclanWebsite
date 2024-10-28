@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle Jump Game</title>
+    <link rel="stylesheet" href="doodlestyles.css">
+</head>
+<body>
+    <button class="customization-button" onclick="toggleCustomization()">Customization</button>
+    
+    <div class="customization-menu" id="customizationMenu">
+        <div class="color-input">
+            <label for="playerColor">Player Color (Hex):</label>
+            <input type="text" id="playerColor" placeholder="#4CAF50">
+            <button class="update-color-btn" onclick="updatePlayerColor()">Update Color</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div class="score">Score: <span id="scoreValue">0</span></div>
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Score: <span id="finalScore">0</span></p>
+            <button onclick="resetGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script src="doodlegame.js"></script>
+</body>
+</html>
