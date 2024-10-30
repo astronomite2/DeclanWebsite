@@ -38,3 +38,4 @@ getDocs(studentsCollection)
     console.log("Error getting documents: ", error);
   });
 
+export { app, db };
