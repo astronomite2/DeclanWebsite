@@ -1,15 +1,19 @@
+// Import Firebase
+import { db } from "./firebaseAPI.js";
+import { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// Game setup
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('scoreValue');
-const gameOverElement = document.getElementById('gameOver');
 const finalScoreElement = document.getElementById('finalScore');
 
-// Set canvas size
+// Canvas setup
 canvas.width = 800;
 canvas.height = 600;
 
 // Game variables
-const player = {
+let player = {
     x: canvas.width / 2,
     y: canvas.height - 100,
     width: 30,
@@ -30,71 +34,18 @@ const platformWidth = 100;
 const platformHeight = 20;
 const platformCount = 7;
 
-//Firebase Variables
-import { app } from "firebaseAPI.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-const db = getFirestore(app);
+// Keyboard controls
+const keys = {};
+window.addEventListener('keydown', (e) => {
+    keys[e.code] = true;
+});
+window.addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+});
 
-// Leaderboard functionality
-async function getLeaderboardData() {
-    const leaderboardRef = collection(db, 'leaderboard');
-    const q = query(leaderboardRef, orderBy('score', 'desc'), limit(100));
-    
-    try {
-        const querySnapshot = await getDocs(q);
-        const leaderboardData = [];
-        querySnapshot.forEach((doc, index) => {
-            const data = doc.data();
-            leaderboardData.push({
-                rank: index + 1,
-                name: data.name,
-                score: data.score
-            });
-        });
-        return leaderboardData;
-    } catch (error) {
-        console.error("Error fetching leaderboard data:", error);
-        return [];
-    }
-}
-
-// Function to add new score to leaderboard
-async function addScoreToLeaderboard(playerName, score) {
-    try {
-        const leaderboardRef = collection(db, 'leaderboard');
-        await addDoc(leaderboardRef, {
-            name: playerName,
-            score: score,
-            timestamp: serverTimestamp()
-        });
-        updateLeaderboardDisplay();
-    } catch (error) {
-        console.error("Error adding score:", error);
-    }
-}
-
-// Update leaderboard display
-async function updateLeaderboardDisplay() {
-    const leaderboardData = await getLeaderboardData();
-    const leaderboardList = document.getElementById('leaderboardList');
-    leaderboardList.innerHTML = '';
-    
-    leaderboardData.forEach(entry => {
-        const entryElement = document.createElement('div');
-        entryElement.className = 'leaderboard-entry';
-        entryElement.innerHTML = `
-            <span class="rank">#${entry.rank}</span>
-            <span class="name">${entry.name}</span>
-            <span class="score">${entry.score}</span>
-        `;
-        leaderboardList.appendChild(entryElement);
-    });
-}
-
-// Generate initial platforms
+// Game functions
 function generatePlatforms() {
     platforms = [];
-    // Add starting platform directly under the player
     platforms.push({
         x: player.x - platformWidth / 2,
         y: player.y + player.height,
@@ -102,7 +53,6 @@ function generatePlatforms() {
         height: platformHeight
     });
     
-    // Generate remaining platforms
     for (let i = 1; i < platformCount; i++) {
         platforms.push({
             x: Math.random() * (canvas.width - platformWidth),
@@ -113,53 +63,7 @@ function generatePlatforms() {
     }
 }
 
-// Customization functions
-function toggleCustomization() {
-    const menu = document.getElementById('customizationMenu');
-    menu.classList.toggle('show');
-}
-
-function updatePlayerColor() {
-    const colorInput = document.getElementById('playerColor').value;
-    // Validate hex color
-    if (/^#[0-9A-F]{6}$/i.test(colorInput)) {
-        player.color = colorInput;
-    } else {
-        alert('Please enter a valid hex color (e.g., #FF0000)');
-    }
-}
-
-// Handle keyboard input
-const keys = {};
-window.addEventListener('keydown', (e) => {
-    keys[e.code] = true;
-});
-window.addEventListener('keyup', (e) => {
-    keys[e.code] = false;
-});
-
-function checkWallCollision() {
-    // Check if player touches the walls
-    if (player.x <= 0 || player.x + player.width >= canvas.width) {
-        gameOver = true;
-        gameOverElement.style.display = 'block';
-        finalScoreElement.textContent = score;
-    }
-}
-
-function submitScore() {
-    const playerName = document.getElementById('playerName').value.trim();
-    if (playerName) {
-        addScoreToLeaderboard(playerName, score);
-        // Disable submit button to prevent multiple submissions
-        document.querySelector('.submit-score button').disabled = true;
-    } else {
-        alert('Please enter your name');
-    }
-}
-
 function movePlayer() {
-    // Horizontal movement
     if (keys['ArrowLeft']) {
         player.velocityX = -player.speed;
     } else if (keys['ArrowRight']) {
@@ -168,28 +72,27 @@ function movePlayer() {
         player.velocityX = 0;
     }
 
-    // Jump only when on platform
     if (keys['Space'] && player.isOnPlatform) {
         player.velocityY = player.jumpForce;
         player.isOnPlatform = false;
     }
 
-    // Apply gravity
     player.velocityY += player.gravity;
-
-    // Update position
     player.x += player.velocityX;
     player.y += player.velocityY;
 
-    // Check wall collision
-    checkWallCollision();
+    // Wall collision
+    if (player.x <= 0 || player.x + player.width >= canvas.width) {
+        gameOver = true;
+        showGameOver();
+        finalScoreElement.textContent = score;
+    }
 
-    // Reset isOnPlatform
     player.isOnPlatform = false;
 
     // Platform collision
     platforms.forEach(platform => {
-        if (player.velocityY > 0 && // Moving downward
+        if (player.velocityY > 0 &&
             player.y + player.height > platform.y &&
             player.y + player.height < platform.y + platform.height &&
             player.x + player.width > platform.x &&
@@ -200,16 +103,27 @@ function movePlayer() {
         }
     });
 
-    // Game over condition for falling
     if (player.y > canvas.height) {
         gameOver = true;
-        gameOverElement.style.display = 'block';
+        showGameOver();
         finalScoreElement.textContent = score;
     }
 }
 
+// Function to show game over screen
+function showGameOver() {
+    const overlay = document.querySelector('.game-over-overlay');
+    overlay.classList.add('active');
+}
+
+// Function to hide game over screen
+function hideGameOver() {
+    const overlay = document.querySelector('.game-over-overlay');
+    overlay.classList.remove('active');
+}
+
+
 function updatePlatforms() {
-    // Move platforms down when player reaches upper half
     if (player.y < canvas.height / 2) {
         player.y = canvas.height / 2;
         platforms.forEach(platform => {
@@ -225,16 +139,13 @@ function updatePlatforms() {
 }
 
 function draw() {
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw platforms
     ctx.fillStyle = '#333';
     platforms.forEach(platform => {
         ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
     });
 
-    // Draw player with custom color
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.width, player.height);
 }
@@ -248,6 +159,50 @@ function gameLoop() {
     }
 }
 
+// UI Functions
+function toggleCustomization() {
+    const menu = document.getElementById('customizationMenu');
+    menu.classList.toggle('show');
+}
+
+function updatePlayerColor() {
+    const colorInput = document.getElementById('playerColor').value;
+    if (/^#[0-9A-F]{6}$/i.test(colorInput)) {
+        player.color = colorInput;
+    } else {
+        alert('Please enter a valid hex color (e.g., #FF0000)');
+    }
+}
+
+async function submitScore() {
+    const playerNameInput = document.getElementById('playerName');
+    const playerName = playerNameInput.value.trim();
+    const submitButton = document.querySelector('.submit-score button');
+    
+    if (playerName) {
+        try {
+            submitButton.disabled = true;
+            await addDoc(collection(db, 'leaderboard'), {
+                name: playerName,
+                score: score,
+                timestamp: serverTimestamp()
+            });
+            await updateLeaderboardDisplay();
+            playerNameInput.value = '';
+            setTimeout(() => {
+                resetGame();
+                submitButton.disabled = false;
+            }, 1500);
+        } catch (error) {
+            console.error("Error submitting score:", error);
+            alert('Error submitting score. Please try again.');
+            submitButton.disabled = false;
+        }
+    } else {
+        alert('Please enter your name');
+    }
+}
+
 function resetGame() {
     player.x = canvas.width / 2;
     player.y = canvas.height - 100;
@@ -257,19 +212,76 @@ function resetGame() {
     score = 0;
     scoreElement.textContent = '0';
     gameOver = false;
-    gameOverElement.style.display = 'none';
-    document.getElementById('playerName').value = ''; // Clear player name input
-    document.querySelector('.submit-score button').disabled = false; // Re-enable submit button
+    hideGameOver();
     generatePlatforms();
     gameLoop();
+}
+
+// Leaderboard functions
+async function updateLeaderboardDisplay() {
+    const leaderboardData = await getLeaderboardData();
+    const leaderboardList = document.getElementById('leaderboardList');
+    leaderboardList.innerHTML = '';
+    
+    // Always show top 3 positions
+    for (let i = 0; i < 3; i++) {
+        const entry = leaderboardData[i] || { name: 'N/A', score: '---' };
+        const entryElement = document.createElement('div');
+        entryElement.className = 'leaderboard-entry';
+        entryElement.innerHTML = `
+            <span class="rank">#${i + 1}</span>
+            <span class="name">${entry.name}</span>
+            <span class="score">${entry.score}</span>
+        `;
+        leaderboardList.appendChild(entryElement);
+    }
+
+    // Add remaining entries
+    for (let i = 3; i < leaderboardData.length; i++) {
+        const entry = leaderboardData[i];
+        const entryElement = document.createElement('div');
+        entryElement.className = 'leaderboard-entry';
+        entryElement.innerHTML = `
+            <span class="rank">#${i + 1}</span>
+            <span class="name">${entry.name}</span>
+            <span class="score">${entry.score}</span>
+        `;
+        leaderboardList.appendChild(entryElement);
+    }
+}
+
+async function getLeaderboardData() {
+    const leaderboardRef = collection(db, 'leaderboard');
+    const q = query(leaderboardRef, orderBy('score', 'desc'), limit(10));
+    
+    try {
+        const querySnapshot = await getDocs(q);
+        const leaderboardData = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            leaderboardData.push({
+                name: data.name,
+                score: data.score
+            });
+        });
+        return leaderboardData;
+    } catch (error) {
+        console.error("Error fetching leaderboard data:", error);
+        return [];
+    }
 }
 
 function initGame() {
     generatePlatforms();
-    updateLeaderboardDisplay(); // Initial leaderboard load
+    updateLeaderboardDisplay();
     gameLoop();
 }
 
-setInterval(updateLeaderboardDisplay, 30000);
-
-initGame();
+// Export necessary functions for HTML
+export { 
+    initGame,
+    submitScore,
+    resetGame,
+    toggleCustomization,
+    updatePlayerColor
+};

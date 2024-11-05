@@ -1,17 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doodle Jump Game</title>
+    <title>Doodle Game</title>
     <link rel="stylesheet" href="doodlestyles.css">
 </head>
 <body>
-    <button class="customization-button" onclick="toggleCustomization()">Customization</button>
-    
-    <div class="customization-menu" id="customizationMenu">
+    <button class="customization-button" onclick="toggleCustomization()">Customize</button>
+
+    <div id="customizationMenu" class="customization-menu">
         <div class="color-input">
-            <label for="playerColor">Player Color (Hex):</label>
+            <label>Player Color (Hex):</label>
             <input type="text" id="playerColor" placeholder="#4CAF50">
             <button class="update-color-btn" onclick="updatePlayerColor()">Update Color</button>
         </div>
@@ -20,26 +18,42 @@
     <div class="game-container">
         <canvas id="gameCanvas"></canvas>
         <div class="score">Score: <span id="scoreValue">0</span></div>
-        <div id="gameOver" class="game-over">
-            <h2>Game Over!</h2>
-            <p>Score: <span id="finalScore">0</span></p>
-            <div class="submit-score">
-                <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
-                <button onclick="submitScore()">Submit Score</button>
+        
+        <div class="game-over-overlay">
+            <div id="gameOver" class="game-over">
+                <h2>Game Over!</h2>
+                <p>Score: <span id="finalScore">0</span></p>
+                <div class="submit-score">
+                    <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+                    <button onclick="submitScore()">Submit Score</button>
+                </div>
+                <button onclick="resetGame()">Play Again</button>
             </div>
-            <button onclick="resetGame()">Play Again</button>
         </div>
     </div>
 
-
+    <div class="game-over-overlay">
+        <div class="game-over">
+            <h2>Game Over!</h2>
+            <p>Your score: <span class="final-score">0</span></p>
+            <button onclick="hideGameOver()">Play Again</button>
+        </div>
+    </div>
 
     <div id="leaderboardMenu" class="leaderboard-menu">
         <h2>Leaderboard</h2>
-        <div id="leaderboardList" class="leaderboard-list">
-            <!-- Leaderboard entries will be inserted here -->
-        </div>
+        <div id="leaderboardList" class="leaderboard-list"></div>
     </div>
 
-    <script src="doodlegame.js"></script>
+    <script type="module">
+        import { initGame, submitScore, resetGame, toggleCustomization, updatePlayerColor } from './doodlegame.js';
+        window.submitScore = submitScore;
+        window.resetGame = resetGame;
+        window.toggleCustomization = toggleCustomization;
+        window.updatePlayerColor = updatePlayerColor;
+        
+        // Start the game when the page loads
+        window.addEventListener('load', initGame);
+    </script>
 </body>
 </html>
