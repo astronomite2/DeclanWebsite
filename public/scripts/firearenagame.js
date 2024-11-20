@@ -1,4 +1,7 @@
-import * as PIXI from 'pixi.js';
+import * as PIXI from '/pixi.js';
+
+const app = new PIXI.Application({ width: 800, height: 600 });
+document.body.appendChild(app.view);
 
 class PlayerStats {
     constructor() {
@@ -335,5 +338,3 @@ function initializeGame() {
 
 // Initialize the game when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeGame);
-
-export { PlayerController, PlayerStats };
