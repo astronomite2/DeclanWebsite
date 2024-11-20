@@ -2,55 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fire Arena Game</title>
-    <link rel="stylesheet" href="firearenastyles.css">
+    <title>Arena Game</title>
+    <style src="firearenastyles.css"></style>
 </head>
 <body>
-    <div id="game-container">
-        <!-- Opening Screen -->
-        <div id="opening-screen" class="screen">
-            <h1>Fire Arena</h1>
-            <div class="controls-guide">
-                <h2>How to Play</h2>
-                <ul>
-                    <li>Use WASD to move the player circle</li>
-                    <li>Move fast to build energy</li>
-                    <li>Avoid lava and defeat enemies using energy</li>
-                    <li>Fiery enemies spawn periodically</li>
-                    <li>Press F to explode when overcharged</li>
-                </ul>
-            </div>
-            <button id="start-button" class="game-button">Start Game</button>
-            <button id="main-menu-button" class="game-button">Main Menu</button>
-        </div>
-
-        <!-- Game Screen -->
-        <div id="game-screen" class="screen hidden">
-            <div class="hud">
-                <div class="energy-container">
-                    <div class="energy-label">Energy</div>
-                    <div class="energy-bar">
-                        <div id="energy-fill"></div>
-                    </div>
-                </div>
-            </div>
-            <canvas id="gameCanvas"></canvas>
-            <div id="countdown" class="hidden">3</div>
-        </div>
-
-        <!-- Game Over Screen -->
-        <div id="game-over-screen" class="screen hidden">
-            <h2>Game Over</h2>
-            <div class="final-score">Score: <span id="final-score">0</span></div>
-            <div class="leaderboard">
-                <h3>Top 10 Players</h3>
-                <div id="leaderboard-list"></div>
-            </div>
-            <button id="play-again-button" class="game-button">Play Again</button>
-            <button id="exit-button" class="game-button">Exit</button>
-        </div>
-    </div>
-    <script src="firearenagame.js"></script>
+    <div id="game-container"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+    <script type="module" src="firearenagame.js"></script>
 </body>
 </html>
