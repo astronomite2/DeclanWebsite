@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Doodle Game</title>
-    <link rel="stylesheet" href="doodlestyles.css">
+    <link rel="stylesheet" href="styles/doodlestyles.css">
 </head>
 <body>
     <button class="customization-button" onclick="toggleCustomization()">Customize</button>
@@ -46,7 +46,7 @@
     </div>
 
     <script type="module">
-        import { initGame, submitScore, resetGame, toggleCustomization, updatePlayerColor } from './doodlegame.js';
+        import { initGame, submitScore, resetGame, toggleCustomization, updatePlayerColor } from 'scripts/doodlegame.js';
         window.submitScore = submitScore;
         window.resetGame = resetGame;
         window.toggleCustomization = toggleCustomization;
