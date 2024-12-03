@@ -3,34 +3,30 @@ const config = {
     width: 800,
     height: 600,
     parent: 'game-container',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            debug: false
+        }
+    },
     scene: {
+        preload: preloadScene,
         create: createScene
     }
 };
-
-config.scene.preload = preloadScene;
-config.scene.create = createScene;
 
 function preloadScene() {
     // Preload assets if needed
 }
 
 function createScene() {
-
     // Initialize and render the arena view
     const arenaView = new ArenaView(this, {
         centerX: this.game.config.width / 2,
         centerY: this.game.config.height / 2,
         arenaRadius: 300,
-        lavaBorderWidth: 50,
-        physics: {
-            default: 'arcade',
-            arcade: {
-                debug: false
-            }
-        },
-        scene: [GameScene]
-      });
+        lavaBorderWidth: 50
+    });
 }
 
 class ArenaView {
@@ -102,19 +98,6 @@ class ArenaView {
             Math.PI * 2, 
             false
           );
-          
-          // If not the innermost ring, cut out the inner circle
-        //   if (i < ringCount - 1) {
-        //     graphics.beginPath();
-        //     graphics.arc(
-        //       this.centerX, 
-        //       this.centerY, 
-        //       innerRadius, 
-        //       0, 
-        //       Math.PI * 2, 
-        //       true  // Note the reversed direction for the inner circle
-        //     );
-        //   }
           
           graphics.fillPath();
         }
@@ -403,7 +386,12 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // Set up physics
+        // Ensure physics is enabled
+        if (!this.physics) {
+            this.physics = this.scene.systems.physics;
+        }
+
+        // Set up physics world bounds
         this.physics.world.setBounds(0, 0, this.game.config.width, this.game.config.height);
 
         // Create arena view
@@ -483,6 +471,4 @@ class GameScene extends Phaser.Scene {
     }
 }
 
-const game = new Phaser.Game(config);
-const gameScene = new GameScene();
-game.scene.add('GameScene', gameScene, true);
+// Modify the game configuration to directly
