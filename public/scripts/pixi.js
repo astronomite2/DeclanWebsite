@@ -5,6 +5,7 @@
  * PixiJS is licensed under the MIT License.
  * http://www.opensource.org/licenses/mit-license
  */
+console.log("PixiJS v8.5.2 - ✨ WebGL ✨");
 var PIXI = (function (exports) {
     'use strict';
 
