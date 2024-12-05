@@ -21,7 +21,7 @@ const CENTER_Y = 300;
 const OUTER_RADIUS = 300;
 
 // Movement parameters
-const ACCELERATION = 1;
+const ACCELERATION = 0.5;
 const MAX_SPEED = 200;
 const FRICTION = 0.95;
 
@@ -99,64 +99,61 @@ function spawnEnemy() {
     enemies.add(enemy);
 }
 
-function handleElasticCollision(obj1, obj2) {
+function handleCollision(obj1, obj2) {
     // Calculate collision normal
     const dx = obj2.x - obj1.x;
     const dy = obj2.y - obj1.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    // Separate objects if overlapping
-    if (distance < obj1.radius + obj2.radius) {
-        const overlap = obj1.radius + obj2.radius - distance;
-        const nx = dx / distance;
-        const ny = dy / distance;
-        
-        // Move objects apart proportional to their mass
-        const totalMass = obj1.mass + obj2.mass;
-        obj1.x -= overlap * (obj2.mass / totalMass) * nx;
-        obj1.y -= overlap * (obj2.mass / totalMass) * ny;
-        obj2.x += overlap * (obj1.mass / totalMass) * nx;
-        obj2.y += overlap * (obj1.mass / totalMass) * ny;
-    }
+    // Check if objects are actually colliding
+    if (distance >= obj1.radius + obj2.radius) return;
 
-    // Recalculate normal after separation
-    const newDx = obj2.x - obj1.x;
-    const newDy = obj2.y - obj1.y;
-    const newDistance = Math.sqrt(newDx * newDx + newDy * newDy);
-    const nx = newDx / newDistance;
-    const ny = newDy / newDistance;
+    // Calculate collision vector
+    const collisionX = dx / distance;
+    const collisionY = dy / distance;
 
     // Calculate relative velocity
-    const dvx = obj2.velocity.x - obj1.velocity.x;
-    const dvy = obj2.velocity.y - obj1.velocity.y;
+    const velDiffX = obj2.velocity.x - obj1.velocity.x;
+    const velDiffY = obj2.velocity.y - obj1.velocity.y;
 
-    // Calculate velocity along the normal
-    const velocityAlongNormal = dvx * nx + dvy * ny;
+    // Calculate velocity along the collision normal
+    const velocityAlongNormal = velDiffX * collisionX + velDiffY * collisionY;
 
-    // Do not resolve if velocities are separating
+    // Do not resolve if objects are moving apart
     if (velocityAlongNormal > 0) return;
 
-    // Coefficient of restitution (bounciness)
-    const e = 0.8;
+    // Restitution (bounciness)
+    const restitution = 0.7;
 
     // Compute impulse scalar
-    const j = -(1 + e) * velocityAlongNormal / 
+    const impulse = -(1 + restitution) * velocityAlongNormal / 
         (1/obj1.mass + 1/obj2.mass);
 
     // Apply impulse
-    const impulseX = j * nx;
-    const impulseY = j * ny;
+    const impulseX = impulse * collisionX;
+    const impulseY = impulse * collisionY;
 
-    // Limit the impulse to prevent extreme velocities
-    const MAX_IMPULSE = 50; // Adjust this value as needed
+    // Limit extreme velocities
+    const MAX_IMPULSE = 30;
     const impulseLength = Math.sqrt(impulseX * impulseX + impulseY * impulseY);
     const scaledImpulseX = impulseX * Math.min(1, MAX_IMPULSE / impulseLength);
     const scaledImpulseY = impulseY * Math.min(1, MAX_IMPULSE / impulseLength);
 
+    // Update velocities
     obj1.velocity.x -= scaledImpulseX / obj1.mass;
     obj1.velocity.y -= scaledImpulseY / obj1.mass;
     obj2.velocity.x += scaledImpulseX / obj2.mass;
     obj2.velocity.y += scaledImpulseY / obj2.mass;
+
+    // Separate objects to prevent sticking
+    const separationDistance = obj1.radius + obj2.radius - distance;
+    const separationX = separationDistance * collisionX * 0.5;
+    const separationY = separationDistance * collisionY * 0.5;
+
+    obj1.x -= separationX;
+    obj1.y -= separationY;
+    obj2.x += separationX;
+    obj2.y += separationY;
 }
 
 function update() {
@@ -214,8 +211,11 @@ function update() {
         player.velocity.y *= -0.5;
     }
 
+    // Create a copy of enemies to safely iterate
+    const enemyList = [...enemies.children.entries];
+
     // Update and chase enemies
-    enemies.children.entries.forEach(enemy => {
+    enemyList.forEach(enemy => {
         // Chase player
         const angleToPlayer = Phaser.Math.Angle.Between(
             enemy.x, enemy.y, player.x, player.y
@@ -241,12 +241,16 @@ function update() {
         const distanceToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
         if (distanceToPlayer < (enemy.radius + player.radius)) {
             // Elastic collision
-            handleElasticCollision(player, enemy);
+            handleCollision(player, enemy);
 
             // Destroy enemy if hit twice
             enemy.hits++;
             if (enemy.hits >= 2) {
-                enemy.destroy();
+                // Move enemy off-screen instead of destroying
+                enemy.x = -100;
+                enemy.y = -100;
+                enemy.velocity.x = 0;
+                enemy.velocity.y = 0;
                 enemies.remove(enemy);
             }
 
