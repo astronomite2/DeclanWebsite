@@ -9,25 +9,7 @@ const config = {
             debug: false
         }
     },
-    scene: {
-        preload: preloadScene,
-        create: createScene
-    }
 };
-
-function preloadScene() {
-    // Preload assets if needed
-}
-
-function createScene() {
-    // Initialize and render the arena view
-    const arenaView = new ArenaView(this, {
-        centerX: this.game.config.width / 2,
-        centerY: this.game.config.height / 2,
-        arenaRadius: 300,
-        lavaBorderWidth: 50
-    });
-}
 
 class ArenaView {
     /**
@@ -386,20 +368,21 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // Ensure physics is enabled
-        if (!this.physics) {
-            this.physics = this.scene.systems.physics;
-        }
+        console.log("Game Scene Creation running");
 
-        // Set up physics world bounds
-        this.physics.world.setBounds(0, 0, this.game.config.width, this.game.config.height);
+        if (this.physics && this.physics.world) {
+            // Set up physics world bounds
+            this.physics.world.setBounds(0, 0, this.game.config.width, this.game.config.height);
+        } else {
+            console.error("Physics world is not initialized yet.");
+        }
 
         // Create arena view
         const arenaConfig = {
             centerX: this.game.config.width / 2,
             centerY: this.game.config.height / 2,
             arenaRadius: Math.min(this.game.config.width, this.game.config.height) / 2 - 50,
-            lavaBorderWidth: 20
+            lavaBorderWidth: 50
         };
         this.arenaView = new ArenaView(this, arenaConfig);
         this.arenaView.renderArena();
@@ -471,4 +454,18 @@ class GameScene extends Phaser.Scene {
     }
 }
 
-// Modify the game configuration to directly
+function preloadScene() {
+    // Preload assets if needed
+}
+
+function createScene() {
+    console.log("Game Scene Creation running");
+    // Initialize and render the game scene
+    const scene = new GameScene();
+    scene.create();
+}
+
+config.scene = {
+    preload: preloadScene(),
+    create: createScene()
+};
