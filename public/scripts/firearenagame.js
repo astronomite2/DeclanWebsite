@@ -2,470 +2,116 @@ const config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    parent: 'game-container',
-    physics: {
-        default: 'arcade',
-        arcade: {
-            debug: false
-        }
-    },
+    scene: {
+        create: create,
+        update: update
+    }
 };
 
-class ArenaView {
-    /**
-     * Create an Arena View
-     * @param {Phaser.Scene} scene - The Phaser scene to render the arena in
-     * @param {Object} config - Configuration for the arena
-     * @param {number} config.centerX - X coordinate of arena center
-     * @param {number} config.centerY - Y coordinate of arena center
-     * @param {number} config.arenaRadius - Total radius of the arena
-     * @param {number} config.lavaBorderWidth - Width of the lava border
-     */
-    constructor(scene, config) {
-      this.scene = scene;
-      this.centerX = config.centerX;
-      this.centerY = config.centerY;
-      this.arenaRadius = config.arenaRadius;
-      this.lavaBorderWidth = config.lavaBorderWidth;
-    }
-  
-    /**
-     * Renders the circular arena with a lava border
-     */
-    renderArena() {
-      // Create the lava border first (underneath)
-      this.drawLavaBorder();
-  
-      // Create the main playable area (inner circle)
-      this.drawPlayableArea();
-    }
-  
-    /**
-     * Draws the inner playable circle with concentric green gradients
-     * @private
-     */
-    drawPlayableArea() {
-        // Create the main green/ground area
-        const playableRadius = this.arenaRadius - this.lavaBorderWidth;
-        
-        // Use graphics to draw the playable area
-        const graphics = this.scene.add.graphics();
-        
-        // Define gray gradient colors
-        const bluishGrayColors = [
-            0x5F6A6A,   // Slate Gray (outer ring)
-            0x85929E,   // Light Slate Gray (middle ring)
-            0xAAB7B8    // Gainsboro Gray (inner ring)
-        ];
-        
-        // Draw concentric circles with different green shades
-        const ringCount = 3;
-        const ringWidth = playableRadius / ringCount;
-    
-        for (let i = 0; i < ringCount; i++) {
-          // Calculate radius for each ring
-          const currentRadius = playableRadius - (i * ringWidth);
-          const innerRadius = currentRadius - ringWidth;
-          
-          // Set fill color for the current ring
-          graphics.fillStyle(bluishGrayColors[i], 1);
-          
-          // Draw the ring
-          graphics.beginPath();
-          graphics.arc(
-            this.centerX, 
-            this.centerY, 
-            currentRadius, 
-            0, 
-            Math.PI * 2, 
-            false
-          );
-          
-          graphics.fillPath();
-        }
-    }
-  
-    /**
-     * Draws the lava border around the arena
-     * @private
-     */
-    drawLavaBorder() {
-      const graphics = this.scene.add.graphics();
-      
-      // Set line style and fill for a complete lava border
-      graphics.lineStyle(this.lavaBorderWidth, 0x8b0000, 1); // Dark red border
-      graphics.fillStyle(0xff4500, 1); // Bright orange-red fill
-      
-      // Draw the complete outer circle (lava border)
-      graphics.beginPath();
-      graphics.arc(
-        this.centerX, 
-        this.centerY, 
-        this.arenaRadius, 
-        0, 
-        Math.PI * 2, 
-        false
-      );
-      
-      // Ensure the circle is completely filled and stroked
-      graphics.closePath();
-      graphics.strokePath();
-      graphics.fillPath();
-    }
-  
-    /**
-     * Gets the dimensions and boundaries of the arena
-     * @returns {Object} Arena configuration object
-     */
-    getArenaDimensions() {
-      return {
-        centerX: this.centerX,
-        centerY: this.centerY,
-        totalRadius: this.arenaRadius,
-        playableRadius: this.arenaRadius - this.lavaBorderWidth
-      };
-    }
+const game = new Phaser.Game(config);
+
+let player;
+let cursors;
+
+const CENTER_X = 400;
+const CENTER_Y = 300;
+const OUTER_RADIUS = 300;
+
+// Movement parameters
+const ACCELERATION = 2;
+const MAX_SPEED = 200;
+const FRICTION = 0.95; // Determines deceleration rate
+
+function create() {
+    // Create graphics for circles
+    const graphics = this.add.graphics();
+
+    // Outer circle (blue)
+    graphics.fillStyle(0x0000FF, 0.3);
+    graphics.lineStyle(2, 0xffffff, 1);
+    graphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
+    graphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
+
+    // Middle circle (green)
+    graphics.fillStyle(0x00FF00, 0.3);
+    graphics.lineStyle(2, 0xffffff, 1);
+    graphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
+    graphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
+
+    // Inner circle (red)
+    graphics.fillStyle(0xFF0000, 0.3);
+    graphics.lineStyle(2, 0xffffff, 1);
+    graphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
+    graphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
+
+    // Create player
+    player = this.add.circle(CENTER_X, CENTER_Y, 20, 0xffffff);
+
+    // Velocity tracking
+    player.velocity = { x: 0, y: 0 };
+
+    // Setup keyboard
+    cursors = this.input.keyboard.addKeys({
+        up: Phaser.Input.Keyboard.KeyCodes.W,
+        down: Phaser.Input.Keyboard.KeyCodes.S,
+        left: Phaser.Input.Keyboard.KeyCodes.A,
+        right: Phaser.Input.Keyboard.KeyCodes.D
+    });
 }
 
-class PlayerStats {
-    constructor() {
-        this._energy = 100;
-        this._maxEnergy = 100;
-        this._speed = 0;
-        this._health = 100;
-        this._isOvercharged = false;
+function update() {
+    // Horizontal movement
+    if (cursors.left.isDown) {
+        player.velocity.x -= ACCELERATION;
+    }
+    if (cursors.right.isDown) {
+        player.velocity.x += ACCELERATION;
     }
 
-    // Energy methods
-    get energy() {
-        return this._energy;
+    // Vertical movement
+    if (cursors.up.isDown) {
+        player.velocity.y -= ACCELERATION;
+    }
+    if (cursors.down.isDown) {
+        player.velocity.y += ACCELERATION;
     }
 
-    set energy(value) {
-        this._energy = Math.max(0, Math.min(value, this._maxEnergy));
-        
-        // Check for overcharge state
-        this._isOvercharged = this._energy >= this._maxEnergy;
+    // Apply friction (deceleration) when no keys are pressed
+    if (!cursors.left.isDown && !cursors.right.isDown) {
+        player.velocity.x *= FRICTION;
+    }
+    if (!cursors.up.isDown && !cursors.down.isDown) {
+        player.velocity.y *= FRICTION;
     }
 
-    get isOvercharged() {
-        return this._isOvercharged;
-    }
+    // Limit maximum speed
+    player.velocity.x = Math.max(Math.min(player.velocity.x, MAX_SPEED), -MAX_SPEED);
+    player.velocity.y = Math.max(Math.min(player.velocity.y, MAX_SPEED), -MAX_SPEED);
 
-    // Speed methods
-    get speed() {
-        return this._speed;
-    }
+    // Stop very small velocities
+    if (Math.abs(player.velocity.x) < 0.1) player.velocity.x = 0;
+    if (Math.abs(player.velocity.y) < 0.1) player.velocity.y = 0;
 
-    set speed(value) {
-        this._speed = Math.max(0, value);
-    }
+    // Update player position
+    player.x += player.velocity.x;
+    player.y += player.velocity.y;
 
-    // Health methods
-    get health() {
-        return this._health;
-    }
+    // Arena boundary constraint
+    const distanceFromCenter = Phaser.Math.Distance.Between(
+        player.x, player.y, CENTER_X, CENTER_Y
+    );
 
-    set health(value) {
-        this._health = Math.max(0, Math.min(value, 100));
-    }
-
-    // Method to increase energy based on movement
-    increaseEnergyFromMovement(deltaSpeed) {
-        // Increase energy proportionally to movement speed
-        const energyGain = deltaSpeed * 0.1;
-        this.energy += energyGain;
-    }
-
-    // Method to decrease energy
-    decreaseEnergy(amount) {
-        this.energy -= amount;
-    }
-}
-
-class PlayerController {
-    /**
-     * Creates a player controller in a Phaser scene
-     * @param {Phaser.Scene} scene - The Phaser scene
-     * @param {Object} config - Configuration for the player
-     * @param {number} config.x - Initial x position
-     * @param {number} config.y - Initial y position
-     * @param {ArenaView} config.arenaView - Arena view to manage boundaries
-     */
-    constructor(scene, config) {
-        this.scene = scene;
-        this.arenaView = config.arenaView;
-        this.stats = new PlayerStats();
-
-        // Player sprite and physics
-        this.player = scene.add.circle(config.x, config.y, 20, 0x00ff00);
-        scene.physics.add.existing(this.player);
-
-        // Movement configuration
-        this.accelerationRate = 10;
-        this.maxSpeed = 200;
-        this.friction = 0.9;
-
-        // Input handling
-        this.cursors = scene.input.keyboard.createCursorKeys();
-        
-        // Collision configuration
-        this.lastCollisionTime = 0;
-        this.collisionCooldown = 500; // milliseconds
-    }
-
-    /**
-     * Handles player movement based on WASD/Arrow key input
-     */
-    handleMovement() {
-        const body = this.player.body;
-        const arenaDimensions = this.arenaView.getArenaDimensions();
-
-        // Keyboard input
-        const left = this.cursors.left.isDown;
-        const right = this.cursors.right.isDown;
-        const up = this.cursors.up.isDown;
-        const down = this.cursors.down.isDown;
-
-        // Calculate acceleration
-        let accelerationX = 0;
-        let accelerationY = 0;
-
-        if (left) accelerationX -= this.accelerationRate;
-        if (right) accelerationX += this.accelerationRate;
-        if (up) accelerationY -= this.accelerationRate;
-        if (down) accelerationY += this.accelerationRate;
-
-        // Apply acceleration
-        body.setAcceleration(accelerationX, accelerationY);
-
-        // Limit velocity
-        const currentSpeed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
-        this.stats.speed = currentSpeed;
-
-        // Increase energy based on movement
-        if (currentSpeed > 0) {
-            this.stats.increaseEnergyFromMovement(currentSpeed);
-        }
-
-        // Apply friction when no keys are pressed
-        if (!left && !right && !up && !down) {
-            body.setVelocity(
-                body.velocity.x * this.friction, 
-                body.velocity.y * this.friction
-            );
-        }
-
-        // Arena boundary check
-        this.checkArenaBoundaries(arenaDimensions);
-    }
-
-    /**
-     * Checks and constrains player within arena boundaries
-     * @param {Object} arenaDimensions - Dimensions of the arena
-     */
-    checkArenaBoundaries(arenaDimensions) {
-        const distanceFromCenter = Phaser.Math.Distance.Between(
-            this.player.x, 
-            this.player.y, 
-            arenaDimensions.centerX, 
-            arenaDimensions.centerY
-        );
-
-        // If player is outside playable radius, push back
-        if (distanceFromCenter > arenaDimensions.playableRadius - this.player.radius) {
-            // Calculate push back vector
-            const angle = Phaser.Math.Angle.Between(
-                arenaDimensions.centerX, 
-                arenaDimensions.centerY, 
-                this.player.x, 
-                this.player.y
-            );
-
-            // Slightly reduce player's velocity and move towards arena center
-            this.player.body.setVelocity(
-                -Math.cos(angle) * this.stats.speed,
-                -Math.sin(angle) * this.stats.speed
-            );
-
-            // Optional: Add a small energy penalty for boundary collision
-            this.stats.decreaseEnergy(5);
-        }
-    }
-
-    /**
-     * Handles collision with enemies
-     * @param {Phaser.GameObjects.GameObject} enemy - Enemy object
-     */
-    handleCollision(enemy) {
-        const currentTime = this.scene.time.now;
-
-        // Collision cooldown to prevent rapid successive damage
-        if (currentTime - this.lastCollisionTime > this.collisionCooldown) {
-            // Reduce health and energy
-            this.stats.health -= 10;
-            this.stats.decreaseEnergy(15);
-
-            // Trigger collision animation
-            this.handleCollisionAnimation(enemy);
-
-            // Update last collision time
-            this.lastCollisionTime = currentTime;
-        }
-
-        // Check if player is dead
-        this.checkDeath();
-    }
-
-    /**
-     * Handles collision animation
-     * @param {Phaser.GameObjects.GameObject} enemy - Enemy object
-     */
-    handleCollisionAnimation(enemy) {
-        // Flash the player red briefly
-        this.player.setFillStyle(0xff0000);
-        this.scene.time.delayedCall(200, () => {
-            this.player.setFillStyle(0x00ff00);
-        });
-
-        // Optional: Add a slight knockback effect
+    // Constrain player within outer arena boundary
+    if (distanceFromCenter > OUTER_RADIUS - player.radius) {
         const angle = Phaser.Math.Angle.Between(
-            enemy.x, enemy.y, 
-            this.player.x, this.player.y
+            CENTER_X, CENTER_Y, player.x, player.y
         );
-
-        this.player.body.setVelocity(
-            -Math.cos(angle) * 100,
-            -Math.sin(angle) * 100
-        );
-    }
-
-    /**
-     * Checks if player is dead and handles game over state
-     */
-    checkDeath() {
-        if (this.stats.health <= 0) {
-            // Game over logic
-            this.scene.scene.restart(); // Simple restart, can be customized
-        }
-    }
-
-    /**
-     * Updates player state each frame
-     */
-    update() {
-        this.handleMovement();
-    }
-}
-
-class GameScene extends Phaser.Scene {
-    constructor() {
-        super('GameScene');
-    }
-
-    preload() {
-        // Preload any assets if needed
-    }
-
-    create() {
-        console.log("Game Scene Creation running");
-
-        if (this.physics && this.physics.world) {
-            // Set up physics world bounds
-            this.physics.world.setBounds(0, 0, this.game.config.width, this.game.config.height);
-        } else {
-            console.error("Physics world is not initialized yet.");
-        }
-
-        // Create arena view
-        const arenaConfig = {
-            centerX: this.game.config.width / 2,
-            centerY: this.game.config.height / 2,
-            arenaRadius: Math.min(this.game.config.width, this.game.config.height) / 2 - 50,
-            lavaBorderWidth: 50
-        };
-        this.arenaView = new ArenaView(this, arenaConfig);
-        this.arenaView.renderArena();
-
-        // Create player
-        const playerConfig = {
-            x: arenaConfig.centerX,
-            y: arenaConfig.centerY,
-            arenaView: this.arenaView
-        };
-        this.playerController = new PlayerController(this, playerConfig);
-
-        // Create some dummy enemies (for demonstration)
-        this.createEnemies();
-
-        // Display player stats
-        this.createStatsDisplay();
-    }
-
-    createEnemies() {
-        this.enemies = this.physics.add.group();
         
-        // Create a few enemies around the arena
-        for (let i = 0; i < 3; i++) {
-            const angle = Phaser.Math.PI2 * (i / 3);
-            const arenaDimensions = this.arenaView.getArenaDimensions();
-            const enemyRadius = 15;
-            
-            const enemy = this.add.circle(
-                arenaDimensions.centerX + Math.cos(angle) * (arenaDimensions.playableRadius / 2), 
-                arenaDimensions.centerY + Math.sin(angle) * (arenaDimensions.playableRadius / 2), 
-                enemyRadius, 
-                0xff0000
-            );
-            
-            this.physics.add.existing(enemy);
-            this.enemies.add(enemy);
-
-            // Set up collision between player and enemies
-            this.physics.add.overlap(
-                this.playerController.player, 
-                enemy, 
-                () => this.playerController.handleCollision(enemy),
-                null,
-                this
-            );
-        }
-    }
-
-    createStatsDisplay() {
-        // Create text to display player stats
-        this.energyText = this.add.text(10, 10, '', { 
-            fontSize: '18px', 
-            fill: '#ffffff' 
-        });
-        this.healthText = this.add.text(10, 40, '', { 
-            fontSize: '18px', 
-            fill: '#ffffff' 
-        });
-    }
-
-    update() {
-        // Update player controller
-        this.playerController.update();
-
-        // Update stats display
-        this.energyText.setText(`Energy: ${Math.round(this.playerController.stats.energy)}`);
-        this.healthText.setText(`Health: ${Math.round(this.playerController.stats.health)}`);
+        player.x = CENTER_X + Math.cos(angle) * (OUTER_RADIUS - player.radius);
+        player.y = CENTER_Y + Math.sin(angle) * (OUTER_RADIUS - player.radius);
+        
+        // Bounce off boundary with reduced velocity
+        player.velocity.x *= -0.5;
+        player.velocity.y *= -0.5;
     }
 }
-
-function preloadScene() {
-    // Preload assets if needed
-}
-
-function createScene() {
-    console.log("Game Scene Creation running");
-    // Initialize and render the game scene
-    const scene = new GameScene();
-    scene.create();
-}
-
-config.scene = {
-    preload: preloadScene(),
-    create: createScene()
-};
