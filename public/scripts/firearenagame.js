@@ -186,12 +186,8 @@ function handleCollision(obj1, obj2, damageAllowed = true) {
             // Track enemy hits
             obj2.hits = (obj2.hits || 0) + 1;
 
-            // Cut enemy radius exactly in half on first hit
-            if (obj2.hits === 1) {
-                obj2.setRadius(obj2.radius * 0.5);
-            } 
             // Destroy enemy on second hit
-            else if (obj2.hits >= 2) {
+            if (obj2.hits >= 2) {
                 obj2.isDestroyed = true;
                 obj2.destroy();
                 enemies.remove(obj2);
@@ -208,12 +204,8 @@ function handleCollision(obj1, obj2, damageAllowed = true) {
             // Track enemy hits
             obj1.hits = (obj1.hits || 0) + 1;
 
-            // Cut enemy radius exactly in half on first hit
-            if (obj1.hits === 1) {
-                obj1.setRadius(obj1.radius * 0.5);
-            } 
             // Destroy enemy on second hit
-            else if (obj1.hits >= 2) {
+            if (obj1.hits >= 2) {
                 obj1.isDestroyed = true;
                 obj1.destroy();
                 enemies.remove(obj1);
@@ -226,7 +218,6 @@ function handleCollision(obj1, obj2, damageAllowed = true) {
             ));
         }
     }
-
     return true;
 }
 
@@ -268,6 +259,7 @@ function update() {
     // Update player position
     player.x += player.velocity.x;
     player.y += player.velocity.y;
+    
 
     // Arena boundary constraint for player
     const distanceFromCenter = Phaser.Math.Distance.Between(
@@ -385,4 +377,5 @@ function update() {
             enemy.velocity.y *= -0.5;
         }
     }
+
 }
