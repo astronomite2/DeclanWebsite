@@ -359,6 +359,7 @@ function update() {
         enemy.x += enemy.velocity.x;
         enemy.y += enemy.velocity.y;
 
+
         // Constrain enemy within outer arena boundary
         const enemyDistanceFromCenter = Phaser.Math.Distance.Between(
             enemy.x, enemy.y, CENTER_X, CENTER_Y
@@ -372,10 +373,37 @@ function update() {
             enemy.x = CENTER_X + Math.cos(boundaryAngle) * (OUTER_RADIUS - enemy.radius);
             enemy.y = CENTER_Y + Math.sin(boundaryAngle) * (OUTER_RADIUS - enemy.radius);
             
-            // Bounce off boundary with reduced velocity
+            // Bounce off boundary
             enemy.velocity.x *= -0.5;
             enemy.velocity.y *= -0.5;
         }
-    }
 
+        // Check collision with player
+        const distanceToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
+        if (distanceToPlayer < (enemy.radius + player.radius)) {
+            // Elastic collision
+            handleCollision(player, enemy);
+
+            // Destroy enemy if hit twice
+            enemy.hits++;
+            if (enemy.hits >= 2) {
+                //destroy
+                enemy.destroy();
+                enemies.remove(enemy);
+            }
+
+            // Increase player hits and shrink
+            player.hits++;
+            player.radius = player.originalRadius * Math.max(0, 1 - (player.hits / MAX_PLAYER_HITS));
+            
+            // Increase player mass with hits
+            player.mass += 0.1;
+
+            // Check if player is defeated
+            if (player.hits >= MAX_PLAYER_HITS) {
+                player.destroy();
+                // You could add game over logic here
+            }
+        }
+    });
 }
