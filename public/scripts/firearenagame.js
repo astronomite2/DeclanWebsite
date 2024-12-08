@@ -133,15 +133,11 @@ function createTrail(scene, x, y, color, velocity, parentObject) {
     // Begin path
     trail.beginPath();
     
-    // Create a curved trail using quadratic curve
-    trail.moveTo(0, -trailWidth/2);  // Start top
-    trail.quadraticCurveTo(
-        trailLength * 0.5,  // Control point x
-        trailWidth,         // Control point y (creates curve)
-        trailLength,        // End point x
-        0                   // End point y (back to center)
-    );
-    trail.lineTo(trailLength, -trailWidth/2);  // Top of end point
+    // Create a curved trail using bezier curve
+    trail.moveTo(0, -trailWidth/2);
+    trail.lineTo(0, trailWidth/2);
+    trail.lineTo(trailLength, trailWidth/2);
+    trail.lineTo(trailLength, -trailWidth/2);
     trail.closePath();
     
     // Fill the path
@@ -259,9 +255,8 @@ function handleCollision(obj1, obj2) {
     return true;
 }
 
-function update() {
-    // Add null check before processing player
-    if (!player) return;
+// Player movement handling
+function handlePlayerMovement() {
     // Horizontal movement
     if (cursors.left.isDown) {
         player.velocity.x -= ACCELERATION;
@@ -285,19 +280,25 @@ function update() {
     if (!cursors.up.isDown && !cursors.down.isDown) {
         player.velocity.y *= FRICTION;
     }
+}
 
+// Limit player speed and create trail
+function updatePlayerVelocity(scene) {
     // Limit maximum speed
     player.velocity.x = Math.max(Math.min(player.velocity.x, MAX_SPEED), -MAX_SPEED);
     player.velocity.y = Math.max(Math.min(player.velocity.y, MAX_SPEED), -MAX_SPEED);
 
     if (player.velocity.x !== 0 || player.velocity.y !== 0) {
-        createTrail(this, player.x, player.y, 0xffffff, player.velocity, player);
+        createTrail(scene, player.x, player.y, 0xffffff, player.velocity, player);
     }
 
     // Stop very small velocities
     if (Math.abs(player.velocity.x) < 0.1) player.velocity.x = 0;
     if (Math.abs(player.velocity.y) < 0.1) player.velocity.y = 0;
+}
 
+// Update player position and constrain within arena
+function constrainPlayerPosition() {
     // Update player position
     player.x += player.velocity.x;
     player.y += player.velocity.y;
@@ -320,134 +321,98 @@ function update() {
         player.velocity.x *= -0.5;
         player.velocity.y *= -0.5;
     }
+}
 
-    // Player growth and color oscillation
-    if (player.radius < player.maxRadius) {
-        // Determine ring and growth
-        if (distanceFromCenter <= OUTER_RADIUS * 1/3) {
-            // Inner ring - slower growth, subtle color shift from white to red
-            player.radius += player.radius < player.maxRadius ? INNER_RING_GROWTH_RATE : 0;
-            
-            player.colorTimer += 0.05; // Slower color transition
-            const redIntensity = Math.sin(player.colorTimer) * 63 + 192; // More subtle transition
-            const greenIntensity = Math.sin(player.colorTimer) * 31;
-            const blueIntensity = Math.sin(player.colorTimer) * 31;
-            player.fillColor = (Math.floor(redIntensity) << 16) | 
-                                (Math.floor(greenIntensity) << 8) | 
-                                Math.floor(blueIntensity);
-        } else if (distanceFromCenter <= OUTER_RADIUS * 2/3) {
-            // Middle ring - slower growth, soft green
-            player.radius += player.radius < player.maxRadius ? SECOND_RING_GROWTH_RATE : 0;
-            player.fillColor = 0x90EE90; // Lighter, softer green
-        } else {
-            // Outer ring - revert to white
-            player.fillColor = 0xffffff;
-        }
-    }
-
-    // Create a copy of enemies to safely iterate and filter out destroyed enemies
-    const enemyList = [...enemies.children.entries].filter(enemy => 
-        enemy && !enemy.isDestroyed && enemy.radius !== null && enemy.radius !== undefined
+// Update individual enemy
+function updateEnemy(scene, enemy) {
+    // Chase player
+    const angleToPlayer = Phaser.Math.Angle.Between(
+        enemy.x, enemy.y, player.x, player.y
     );
 
-    // Handle enemy-enemy and enemy-player collisions
-    for (let i = 0; i < enemyList.length; i++) {
-        const enemy = enemyList[i];
+    // Apply acceleration towards player
+    enemy.velocity.x += Math.cos(angleToPlayer) * ENEMY_ACCELERATION;
+    enemy.velocity.y += Math.sin(angleToPlayer) * ENEMY_ACCELERATION;
+
+    // Apply friction
+    enemy.velocity.x *= ENEMY_FRICTION;
+    enemy.velocity.y *= ENEMY_FRICTION;
+
+    // Limit enemy speed
+    enemy.velocity.x = Math.max(Math.min(enemy.velocity.x, ENEMY_MAX_SPEED), -ENEMY_MAX_SPEED);
+    enemy.velocity.y = Math.max(Math.min(enemy.velocity.y, ENEMY_MAX_SPEED), -ENEMY_MAX_SPEED);
+
+    // Update enemy position
+    enemy.x += enemy.velocity.x;
+    enemy.y += enemy.velocity.y;
+
+    if (enemy.velocity.x !== 0 || enemy.velocity.y !== 0) {
+        createTrail(scene, enemy.x, enemy.y, 0xFFA500, enemy.velocity, enemy);
+    }
+}
+
+// Constrain enemy within arena
+function constrainEnemyPosition(enemy) {
+    const enemyDistanceFromCenter = Phaser.Math.Distance.Between(
+        enemy.x, enemy.y, CENTER_X, CENTER_Y
+    );
+
+    if (enemyDistanceFromCenter > OUTER_RADIUS - enemy.radius) {
+        const boundaryAngle = Phaser.Math.Angle.Between(
+            CENTER_X, CENTER_Y, enemy.x, enemy.y
+        );
         
-        // Null and destroyed checks before processing
-        if (!enemy || enemy.isDestroyed) continue;
+        enemy.x = CENTER_X + Math.cos(boundaryAngle) * (OUTER_RADIUS - enemy.radius);
+        enemy.y = CENTER_Y + Math.sin(boundaryAngle) * (OUTER_RADIUS - enemy.radius);
+        
+        // Bounce off boundary
+        enemy.velocity.x *= -0.5;
+        enemy.velocity.y *= -0.5;
+    }
+}
 
-        // Enemy-player collision
-        const distanceToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
-        if (distanceToPlayer < (enemy.radius + player.radius)) {
-            handleCollision(player, enemy);
+// Handle collision between player and enemy
+function handleEnemyPlayerCollision(enemy) {
+    const distanceToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
+    if (distanceToPlayer < (enemy.radius + player.radius)) {
+        // Elastic collision
+        handleCollision(player, enemy);
+
+        // Destroy enemy if hit twice
+        enemy.hits++;
+        if (enemy.hits >= 2) {
+            enemy.destroy();
+            enemies.remove(enemy);
         }
 
-        // Enemy-enemy collision
-        for (let j = i + 1; j < enemyList.length; j++) {
-            const otherEnemy = enemyList[j];
-            
-            // Additional null and destroyed checks
-            if (!otherEnemy || otherEnemy.isDestroyed) continue;
+        // Increase player hits and shrink
+        player.hits++;
+        player.radius = player.originalRadius * Math.max(0, 1 - (player.hits / MAX_PLAYER_HITS));
+        
+        // Increase player mass with hits
+        player.mass += 0.1;
 
-            const distanceBetweenEnemies = Phaser.Math.Distance.Between(
-                enemy.x, enemy.y, otherEnemy.x, otherEnemy.y
-            );
-            
-            if (distanceBetweenEnemies < (enemy.radius + otherEnemy.radius)) {
-                // False prevents damage handling
-                handleCollision(enemy, otherEnemy, false);
-            }
+        // Check if player is defeated
+        if (player.hits >= MAX_PLAYER_HITS) {
+            player.destroy();
+            // You could add game over logic here
         }
+    }
+}
 
-        // Chase player
-        const angleToPlayer = Phaser.Math.Angle.Between(
-            enemy.x, enemy.y, player.x, player.y
-        );
+// Main update method
+function update() {
+    handlePlayerMovement();
+    updatePlayerVelocity(this);
+    constrainPlayerPosition();
 
-        // Apply acceleration towards player
-        enemy.velocity.x += Math.cos(angleToPlayer) * ENEMY_ACCELERATION;
-        enemy.velocity.y += Math.sin(angleToPlayer) * ENEMY_ACCELERATION;
+    // Create a copy of enemies to safely iterate
+    const enemyList = [...enemies.children.entries];
 
-        // Apply friction
-        enemy.velocity.x *= ENEMY_FRICTION;
-        enemy.velocity.y *= ENEMY_FRICTION;
-
-        // Limit enemy speed
-        enemy.velocity.x = Math.max(Math.min(enemy.velocity.x, ENEMY_MAX_SPEED), -ENEMY_MAX_SPEED);
-        enemy.velocity.y = Math.max(Math.min(enemy.velocity.y, ENEMY_MAX_SPEED), -ENEMY_MAX_SPEED);
-
-        // Update enemy position
-        enemy.x += enemy.velocity.x;
-        enemy.y += enemy.velocity.y;
-
-        if (enemy.velocity.x !== 0 || enemy.velocity.y !== 0) {
-            createTrail(this, enemy.x, enemy.y, 0xFFA500, enemy.velocity, enemy);
-        }
-        // Constrain enemy within outer arena boundary
-        const enemyDistanceFromCenter = Phaser.Math.Distance.Between(
-            enemy.x, enemy.y, CENTER_X, CENTER_Y
-        );
-
-        if (enemyDistanceFromCenter > OUTER_RADIUS - enemy.radius) {
-            const boundaryAngle = Phaser.Math.Angle.Between(
-                CENTER_X, CENTER_Y, enemy.x, enemy.y
-            );
-            
-            enemy.x = CENTER_X + Math.cos(boundaryAngle) * (OUTER_RADIUS - enemy.radius);
-            enemy.y = CENTER_Y + Math.sin(boundaryAngle) * (OUTER_RADIUS - enemy.radius);
-            
-            // Bounce off boundary
-            enemy.velocity.x *= -0.5;
-            enemy.velocity.y *= -0.5;
-        }
-
-        // Check collision with player
-        const distanceToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
-        if (distanceToPlayer < (enemy.radius + player.radius)) {
-            // Elastic collision
-            handleCollision(player, enemy);
-
-            // Destroy enemy if hit twice
-            enemy.hits++;
-            if (enemy.hits >= 2) {
-                //destroy
-                enemy.destroy();
-                enemies.remove(enemy);
-            }
-
-            // Increase player hits and shrink
-            player.hits++;
-            player.radius = player.originalRadius * Math.max(0, 1 - (player.hits / MAX_PLAYER_HITS));
-            
-            // Increase player mass with hits
-            player.mass += 0.1;
-
-            // Check if player is defeated
-            if (player.hits >= MAX_PLAYER_HITS) {
-                player.destroy();
-                // You could add game over logic here
-            }
-        }
+    // Update and chase enemies
+    enemyList.forEach(enemy => {
+        updateEnemy(this, enemy);
+        constrainEnemyPosition(enemy);
+        handleEnemyPlayerCollision(enemy);
     });
 }
