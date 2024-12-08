@@ -198,6 +198,7 @@ function handleCollision(obj1, obj2) {
     obj2.y += separationY;
 }
 
+//Handle player movement
 function handlePlayerMovement() {
     // Horizontal movement
     if (cursors.left.isDown) {
@@ -341,6 +342,17 @@ function handleEnemyPlayerCollision(enemy) {
     }
 }
 
+// Handle collision between enemy and enemy
+function handleEnemyEnemyCollision(enemy1, enemy2) {
+    
+    const distanceBetweenEnemies = Phaser.Math.Distance.Between(enemy1.x, enemy1.y, enemy2.x, enemy2.y);
+    // Check if enemies are colliding
+    if ((enemy1.active && enemy2.active)&&(distanceBetweenEnemies < (enemy1.radius + enemy2.radius))) {
+        // Perform elastic collision physics
+        handleCollision(enemy1, enemy2);
+    }
+}
+
 // Main update method
 function update() {
     handlePlayerMovement();
@@ -355,5 +367,11 @@ function update() {
         updateEnemy(this, enemy);
         constrainEnemyPosition(enemy);
         handleEnemyPlayerCollision(enemy);
+
+        enemyList.forEach(otherEnemy => {
+            if (!otherEnemy || enemy === otherEnemy) return;
+
+            handleEnemyEnemyCollision(enemy, otherEnemy);
+        });
     });
 }
