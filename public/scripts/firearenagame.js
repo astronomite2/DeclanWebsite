@@ -255,7 +255,6 @@ function handleCollision(obj1, obj2) {
     return true;
 }
 
-// Player movement handling
 function handlePlayerMovement() {
     // Horizontal movement
     if (cursors.left.isDown) {
