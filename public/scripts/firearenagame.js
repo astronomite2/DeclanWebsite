@@ -100,19 +100,31 @@ function spawnEnemy() {
 }
 
 function createTrail(scene, x, y, color, velocity, parentObject) {
-    const trailLength = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y) / 5;
-    const trail = scene.add.triangle(x, y, 0, 0, trailLength, 0, trailLength/2, trailLength/2, color);
-    trail.setAlpha(0.5);
+    // Calculate trail length based on velocity magnitude, making it longer and more pronounced
+    const trailLength = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y) / 2;
+    
+    // Create a larger, more solid triangular trail
+    const trail = scene.add.triangle(
+        x, 
+        y, 
+        0, 0,                   // First point at origin
+        trailLength * 1.5, 0,   // Second point - wider base
+        trailLength, trailLength,  // Third point - creates a more pronounced triangular shape
+        color
+    );
+    
+    // Make the trail more solid and slightly transparent
+    trail.setAlpha(0.7);
     
     // Rotate the trail to point in the direction of movement
     const angle = Math.atan2(velocity.y, velocity.x);
     trail.setRotation(angle);
     
-    // Fade out and destroy trail
+    // Fade out and destroy trail with slightly longer duration
     scene.tweens.add({
         targets: trail,
         alpha: 0,
-        duration: 300,
+        duration: 400,
         onComplete: () => trail.destroy()
     });
 }
@@ -262,7 +274,6 @@ function update() {
         if (enemy.velocity.x !== 0 || enemy.velocity.y !== 0) {
             createTrail(this, enemy.x, enemy.y, 0xFFA500, enemy.velocity, enemy);
         }
-        
         // Constrain enemy within outer arena boundary
         const enemyDistanceFromCenter = Phaser.Math.Distance.Between(
             enemy.x, enemy.y, CENTER_X, CENTER_Y
