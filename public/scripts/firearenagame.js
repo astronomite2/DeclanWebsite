@@ -99,6 +99,24 @@ function spawnEnemy() {
     enemies.add(enemy);
 }
 
+function createTrail(scene, x, y, color, velocity, parentObject) {
+    const trailLength = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y) / 5;
+    const trail = scene.add.triangle(x, y, 0, 0, trailLength, 0, trailLength/2, trailLength/2, color);
+    trail.setAlpha(0.5);
+    
+    // Rotate the trail to point in the direction of movement
+    const angle = Math.atan2(velocity.y, velocity.x);
+    trail.setRotation(angle);
+    
+    // Fade out and destroy trail
+    scene.tweens.add({
+        targets: trail,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => trail.destroy()
+    });
+}
+
 function handleCollision(obj1, obj2) {
     // Calculate collision normal
     const dx = obj2.x - obj1.x;
@@ -185,6 +203,10 @@ function update() {
     player.velocity.x = Math.max(Math.min(player.velocity.x, MAX_SPEED), -MAX_SPEED);
     player.velocity.y = Math.max(Math.min(player.velocity.y, MAX_SPEED), -MAX_SPEED);
 
+    if (player.velocity.x !== 0 || player.velocity.y !== 0) {
+        createTrail(this, player.x, player.y, 0xffffff, player.velocity, player);
+    }
+
     // Stop very small velocities
     if (Math.abs(player.velocity.x) < 0.1) player.velocity.x = 0;
     if (Math.abs(player.velocity.y) < 0.1) player.velocity.y = 0;
@@ -237,7 +259,10 @@ function update() {
         enemy.x += enemy.velocity.x;
         enemy.y += enemy.velocity.y;
 
-
+        if (enemy.velocity.x !== 0 || enemy.velocity.y !== 0) {
+            createTrail(this, enemy.x, enemy.y, 0xFFA500, enemy.velocity, enemy);
+        }
+        
         // Constrain enemy within outer arena boundary
         const enemyDistanceFromCenter = Phaser.Math.Distance.Between(
             enemy.x, enemy.y, CENTER_X, CENTER_Y
