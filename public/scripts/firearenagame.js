@@ -116,27 +116,43 @@ function spawnEnemy() {
 }
 
 function createTrail(scene, x, y, color, velocity, parentObject) {
-    // Calculate trail length based on velocity magnitude, making it longer and more pronounced
-    const trailLength = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y) / 2;
+    // Calculate trail length and width based on velocity
+    const trailLength = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+    const trailWidth = trailLength / 3;  // Adjust width relative to length
     
-    // Create a larger, more solid triangular trail
-    const trail = scene.add.triangle(
-        x, 
-        y, 
-        0, 0,                   // First point at origin
-        trailLength * 1.5, 0,   // Second point - wider base
-        trailLength, trailLength,  // Third point - creates a more pronounced triangular shape
-        color
-    );
+    // Create a graphics object for a smooth, solid trail
+    const trail = scene.add.graphics();
     
-    // Make the trail more solid and slightly transparent
+    // Set the trail color and alpha
     trail.setAlpha(0.7);
+    trail.fillStyle(color, 0.7);
     
-    // Rotate the trail to point in the direction of movement
+    // Calculate the movement angle
     const angle = Math.atan2(velocity.y, velocity.x);
-    trail.setRotation(angle);
     
-    // Fade out and destroy trail with slightly longer duration
+    // Begin path
+    trail.beginPath();
+    
+    // Create a curved trail using quadratic curve
+    trail.moveTo(0, -trailWidth/2);  // Start top
+    trail.quadraticCurveTo(
+        trailLength * 0.5,  // Control point x
+        trailWidth,         // Control point y (creates curve)
+        trailLength,        // End point x
+        0                   // End point y (back to center)
+    );
+    trail.lineTo(trailLength, -trailWidth/2);  // Top of end point
+    trail.closePath();
+    
+    // Fill the path
+    trail.fillPath();
+    
+    // Position and rotate the trail
+    trail.x = x;
+    trail.y = y;
+    trail.rotation = angle;
+    
+    // Fade out and destroy trail
     scene.tweens.add({
         targets: trail,
         alpha: 0,
