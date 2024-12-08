@@ -14,6 +14,9 @@ const game = new Phaser.Game(config);
 let player;
 let cursors;
 let enemies;
+let scoreText;
+let healthBar;
+let enemiesDestroyed = 0;
 const MAX_PLAYER_HITS = 20;
 
 const CENTER_X = 400;
@@ -42,25 +45,29 @@ function preload() {
 
 function create() {
     // Create graphics for circles
-    const graphics = this.add.graphics();
+    this.arenagraphics = this.add.graphics();
+
+    // Create UI elements
+    scoreText = createScoreUI(this);
+    healthBar = createHealthBar(this);
 
     // Outer circle (blue)
-    graphics.fillStyle(0x0000FF, 0.3);
-    graphics.lineStyle(2, 0xffffff, 1);
-    graphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
-    graphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
+    this.arenagraphics.fillStyle(0x0000FF, 0.3);
+    this.arenagraphics.lineStyle(2, 0xffffff, 1);
+    this.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
+    this.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
 
     // Middle circle (green)
-    graphics.fillStyle(0x00FF00, 0.3);
-    graphics.lineStyle(2, 0xffffff, 1);
-    graphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
-    graphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
+    this.arenagraphics.fillStyle(0x00FF00, 0.3);
+    this.arenagraphics.lineStyle(2, 0xffffff, 1);
+    this.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
+    this.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
 
     // Inner circle (red)
-    graphics.fillStyle(0xFF0000, 0.3);
-    graphics.lineStyle(2, 0xffffff, 1);
-    graphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
-    graphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
+    this.arenagraphics.fillStyle(0xFF0000, 0.3);
+    this.arenagraphics.lineStyle(2, 0xffffff, 1);
+    this.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
+    this.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
 
     // Create player
     player = this.add.circle(CENTER_X, CENTER_Y, 20, 0xffffff);
@@ -94,6 +101,130 @@ function create() {
         callbackScope: this,
         loop: true
     });
+}
+
+function createScoreUI(scene) {
+    // Create a futuristic, cartoony score display
+    const scoreText = scene.add.text(scene.game.config.width - 150, 20, 'ENEMIES DESTROYED: 0', {
+        fontFamily: 'Arial Black',
+        fontSize: '24px',
+        color: '#00FFFF', // Bright cyan for futuristic look
+        stroke: '#00FFFF',
+        strokeThickness: 4,
+        shadow: {
+            offsetX: 2,
+            offsetY: 2,
+            color: '#0066FF',
+            blur: 4,
+            stroke: true,
+            fill: true
+        }
+    });
+    scoreText.setOrigin(0.5, 0);
+    scoreText.setScrollFactor(0); // Fixed position on screen
+    return scoreText;
+}
+
+function updateScoreUI(scene, scoreText, enemiesDestroyed) {
+    scoreText.setText(`ENEMIES DESTROYED: ${enemiesDestroyed}`);
+    
+    // Add a little bounce animation when score updates
+    scoreText.setScale(1.1);
+    scene.tweens.add({
+        targets: scoreText,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 100,
+        ease: 'Bounce'
+    });
+}
+
+function createHealthBar(scene) {
+    // Create a health bar container
+    const healthBarBG = scene.add.rectangle(50, scene.game.config.height - 50, 200, 30, 0x333333, 0.7);
+    const healthBar = scene.add.rectangle(50, scene.game.config.height - 50, 200, 30, 0x00FF00, 0.9);
+    
+    healthBarBG.setOrigin(0, 0.5);
+    healthBar.setOrigin(0, 0.5);
+    
+    return {
+        background: healthBarBG,
+        bar: healthBar
+    };
+}
+
+function updateHealthBar(healthBar, currentHits, maxHits) {
+    const healthPercentage = 1 - (currentHits / maxHits);
+    const barWidth = 200 * healthPercentage;
+    
+    // Update bar width
+    healthBar.bar.width = barWidth;
+    
+    // Change color based on health
+    if (healthPercentage > 0.5) {
+        healthBar.bar.fillColor = 0x00FF00; // Green
+    } else if (healthPercentage > 0.25) {
+        healthBar.bar.fillColor = 0xFFFF00; // Yellow
+    } else {
+        healthBar.bar.fillColor = 0xFF0000; // Red
+    }
+    
+    // Add shake effect when health is low
+    if (healthPercentage < 0.25) {
+        this.tweens.add({
+            targets: [healthBar.background, healthBar.bar],
+            x: '+=5',
+            yoyo: true,
+            duration: 50,
+            repeat: 2
+        });
+    }
+}
+
+function determinePlayerRingState(player) {
+    const distanceFromCenter = Phaser.Math.Distance.Between(
+        player.x, player.y, CENTER_X, CENTER_Y
+    );
+    
+    let ringState = 'outer';
+    let ringColor = 0x0000FF;
+    
+    if (distanceFromCenter <= OUTER_RADIUS * 1/3) {
+        ringState = 'inner';
+        ringColor = 0xFF0000;
+    } else if (distanceFromCenter <= OUTER_RADIUS * 2/3) {
+        ringState = 'middle';
+        ringColor = 0x00FF00;
+    }
+    
+    return { ringState, ringColor };
+}
+
+function updateRingColors(scene, player) {
+    const { ringState, ringColor } = determinePlayerRingState(player);
+    
+    // Redraw circles with brighter colors based on player position
+    scene.arenagraphics.clear();
+    
+    // Outer circle
+    scene.arenagraphics.fillStyle(0x0000FF, ringState === 'outer' ? 0.6 : 0.3);
+    scene.arenagraphics.lineStyle(2, 0xffffff, 1);
+    scene.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
+    scene.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
+
+    // Middle circle
+    scene.arenagraphics.fillStyle(0x00FF00, ringState === 'middle' ? 0.6 : 0.3);
+    scene.arenagraphics.lineStyle(2, 0xffffff, 1);
+    scene.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
+    scene.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
+
+    // Inner circle
+    scene.arenagraphics.fillStyle(0xFF0000, ringState === 'inner' ? 0.6 : 0.3);
+    scene.arenagraphics.lineStyle(2, 0xffffff, 1);
+    scene.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
+    scene.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
+    
+    return ringState;
 }
 
 function spawnEnemy() {
@@ -432,4 +563,17 @@ function update() {
             handleEnemyEnemyCollision(enemy, otherEnemy);
         });
     });
+
+    // Update score when enemies are destroyed
+    const previousEnemyCount = enemiesDestroyed;
+    enemiesDestroyed = MAX_PLAYER_HITS - player.hits;
+    if (enemiesDestroyed !== previousEnemyCount) {
+        updateScoreUI(this, scoreText, enemiesDestroyed);
+    }
+    
+    // Update health bar
+    updateHealthBar(healthBar, player.hits, MAX_PLAYER_HITS);
+    
+    // Update ring colors and get current ring state
+    const currentRingState = updateRingColors(this, player);
 }
