@@ -198,7 +198,6 @@ function handleCollision(obj1, obj2) {
     obj2.y += separationY;
 }
 
-// Player movement handling
 function handlePlayerMovement() {
     // Horizontal movement
     if (cursors.left.isDown) {
