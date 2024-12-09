@@ -442,7 +442,6 @@ function updatePlayerVelocity(scene) {
     if (Math.abs(player.velocity.y) < 0.1) player.velocity.y = 0;
 }
 
-// Update player position and constrain within arena
 function constrainPlayerPosition() {
     // Update player position
     player.x += player.velocity.x;
@@ -458,12 +457,25 @@ function constrainPlayerPosition() {
             CENTER_X, CENTER_Y, player.x, player.y
         );
         
+        // Correct player position to be exactly on the boundary
         player.x = CENTER_X + Math.cos(angle) * (OUTER_RADIUS - player.radius);
         player.y = CENTER_Y + Math.sin(angle) * (OUTER_RADIUS - player.radius);
         
-        // Bounce off boundary with reduced velocity
-        player.velocity.x *= -0.5;
-        player.velocity.y *= -0.5;
+        // Calculate normal vector at point of collision
+        const normalX = Math.cos(angle);
+        const normalY = Math.sin(angle);
+        
+        // Calculate incident velocity vector
+        const incidentVelX = player.velocity.x;
+        const incidentVelY = player.velocity.y;
+        
+        // Calculate dot product of incident velocity with normal
+        const dotProduct = incidentVelX * normalX + incidentVelY * normalY;
+        
+        // Reflect velocity across normal with some energy loss
+        const reflectionFactor = 0.8; // Adjustable energy loss factor
+        player.velocity.x = reflectionFactor * (incidentVelX - 2 * dotProduct * normalX);
+        player.velocity.y = reflectionFactor * (incidentVelY - 2 * dotProduct * normalY);
     }
 }
 
