@@ -499,6 +499,57 @@ function updatePlayerVelocity(scene) {
     if (Math.abs(player.velocity.y) < 0.1) player.velocity.y = 0;
 }
 
+function generateCollisionParticles(scene, x, y) {
+    // Create a group of geometric particles
+    const particleCount = 20;
+    const particleGroup = scene.add.group();
+
+    for (let i = 0; i < particleCount; i++) {
+        // Randomly choose geometric shape
+        const shapeType = Phaser.Math.Between(0, 2);
+        let particle;
+
+        switch (shapeType) {
+            case 0: // Triangle
+                particle = scene.add.triangle(x, y, 0, 0, 5, 0, 2, 5, 0xFFA500);
+                break;
+            case 1: // Rectangle
+                particle = scene.add.rectangle(x, y, 4, 4, 0xFFA500);
+                break;
+            case 2: // Circle
+                particle = scene.add.circle(x, y, 3, 0xFFA500);
+                break;
+        }
+
+        // Set particle properties
+        particle.setAlpha(0.8);
+        particle.setBlendMode(Phaser.BlendModes.ADD);
+
+        // Random velocity
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const speed = Phaser.Math.FloatBetween(2, 5);
+        particle.velocityX = Math.cos(angle) * speed;
+        particle.velocityY = Math.sin(angle) * speed;
+
+        particleGroup.add(particle);
+
+        // Tween for movement and fade
+        scene.tweens.add({
+            targets: particle,
+            x: `+=${particle.velocityX * 30}`,
+            y: `+=${particle.velocityY * 30}`,
+            alpha: 0,
+            duration: 500,
+            ease: 'Cubic.easeOut',
+            onComplete: () => {
+                particle.destroy();
+            }
+        });
+    }
+
+    return particleGroup;
+}
+
 function screenShake(scene, intensity) {
     scene.tweens.add({
         targets: scene.cameras.main,
@@ -543,6 +594,8 @@ function constrainPlayerPosition(scene) {
         const reflectionFactor = 0.8;
         player.velocity.x = reflectionFactor * (incidentVelX - 2 * dotProduct * normalX);
         player.velocity.y = reflectionFactor * (incidentVelY - 2 * dotProduct * normalY);
+
+        playerHit(scene);
 
         // Screen shake intensity based on dot product
         const shakeIntensity = Math.min(Math.abs(dotProduct) * 2, 5);
@@ -774,6 +827,12 @@ function handleEnemyPlayerCollision(scene, enemy) {
     
     const distanceToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
     if (distanceToPlayer < (enemy.radius + player.radius)) {
+        
+        generateCollisionParticles(scene, 
+            (enemy.x + player.x) / 2, 
+            (enemy.y + player.y) / 2
+        );
+        
         // Elastic collision
         handleCollision(player, enemy);
 
@@ -786,30 +845,35 @@ function handleEnemyPlayerCollision(scene, enemy) {
             enemies.remove(enemy);
         }
 
-        // Increase player hits and shrink
-        player.hits++;
-        player.radius = player.originalRadius * Math.max(0, 1 - (player.hits / MAX_PLAYER_HITS));
-        
-        // Increase player mass with hits
-        player.mass += 0.1;
+        playerHit(scene);
+    }
+}
 
-        // Check if player is defeated
-        if (player.hits >= MAX_PLAYER_HITS) {
-             // Destroy player
-             player.destroy();
-            
-             // Set game over state
-             isGameOver = true;
- 
-             // Stop enemy spawning
-             scene.time.removeAllEvents();
- 
-             // Destroy all existing enemies
-             enemies.clear(true, true);
- 
-             // Create game over UI
-             createGameOverUI(scene);
-        }
+function playerHit(scene)
+{
+    // Increase player hits and shrink
+    player.hits++;
+    player.radius = player.originalRadius * Math.max(0, 1 - (player.hits / MAX_PLAYER_HITS));
+    
+    // Increase player mass with hits
+    player.mass += 0.1;
+
+    // Check if player is defeated
+    if (player.hits >= MAX_PLAYER_HITS) {
+         // Destroy player
+         player.destroy();
+        
+         // Set game over state
+         isGameOver = true;
+
+         // Stop enemy spawning
+         scene.time.removeAllEvents();
+
+         // Destroy all existing enemies
+         enemies.clear(true, true);
+
+         // Create game over UI
+         createGameOverUI(scene);
     }
 }
 
