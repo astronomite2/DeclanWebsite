@@ -363,6 +363,48 @@ function createTrail(scene, x, y, color, velocity, parentObject) {
     });
 }
 
+function createTrail(scene, x, y, color, velocity, parentObject) {
+    // Calculate trail length and width based on velocity
+    const trailLength = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+    const trailWidth = trailLength / 3;  // Adjust width relative to length
+    
+    // Create a graphics object for a smooth, solid trail
+    const trail = scene.add.graphics();
+    
+    // Set the trail color and alpha
+    trail.setAlpha(0.7);
+    trail.fillStyle(color, 0.7);
+    
+    // Calculate the movement angle
+    const angle = Math.atan2(velocity.y, velocity.x);
+    
+    // Begin path
+    trail.beginPath();
+    
+    // Create a curved trail using bezier curve
+    trail.moveTo(0, -trailWidth/2);
+    trail.lineTo(0, trailWidth/2);
+    trail.lineTo(trailLength, trailWidth/2);
+    trail.lineTo(trailLength, -trailWidth/2);
+    trail.closePath();
+    
+    // Fill the path
+    trail.fillPath();
+    
+    // Position and rotate the trail
+    trail.x = x;
+    trail.y = y;
+    trail.rotation = angle;
+    
+    // Fade out and destroy trail
+    scene.tweens.add({
+        targets: trail,
+        alpha: 0,
+        duration: 400,
+        onComplete: () => trail.destroy()
+    });
+}
+
 function handleCollision(obj1, obj2) {
     // Calculate collision normal
     const dx = obj2.x - obj1.x;
