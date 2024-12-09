@@ -26,16 +26,16 @@ const db = getFirestore(app);
 const studentsCollection = collection(db, "students");
 
 // Get all documents from the collection
-let data;
-getDocs(studentsCollection)
-  .then((querySnapshot) => {
-    querySnapshot.forEach((doc) => {
-      data = doc.data();
-      console.log(doc.id, " => ", data);
-    });
-  })
-  .catch((error) => {
-    console.log("Error getting documents: ", error);
-  });
+// let data;
+// getDocs(studentsCollection)
+//   .then((querySnapshot) => {
+//     querySnapshot.forEach((doc) => {
+//       data = doc.data();
+//       console.log(doc.id, " => ", data);
+//     });
+//   })
+//   .catch((error) => {
+//     console.log("Error getting documents: ", error);
+//   });
 
 export { app, db };
