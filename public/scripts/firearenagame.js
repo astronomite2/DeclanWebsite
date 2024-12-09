@@ -249,7 +249,7 @@ function handleRingHealthRegeneration(scene) {
         }
         
         // Regenerate if in inner ring for at least 1 second
-        if (scene.time.now - timer.inner.startTime >= 1000 && player.hits > 0) {
+        if (scene.time.now - timer.inner.startTime >= 500 && player.hits > 0) {
             player.hits = Math.max(0, player.hits - 1);
             timer.inner.startTime = scene.time.now; // Reset timer
         }
@@ -266,7 +266,7 @@ function handleRingHealthRegeneration(scene) {
         }
         
         // Regenerate if in middle ring for at least 3 seconds
-        if (scene.time.now - timer.middle.startTime >= 3000 && player.hits > 0) {
+        if (scene.time.now - timer.middle.startTime >= 1500 && player.hits > 0) {
             player.hits = Math.max(0, player.hits - 1);
             timer.middle.startTime = scene.time.now; // Reset timer
         }
