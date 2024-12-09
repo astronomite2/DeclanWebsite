@@ -218,7 +218,57 @@ function determinePlayerRingState(player) {
         ringColor = 0xb8b8b8;
     }
     
+
+
     return { ringState, ringColor };
+}
+
+function handleRingHealthRegeneration(scene) {
+    const { ringState } = determinePlayerRingState(player);
+    
+    // Static variable to track regeneration timing
+    if (!scene.ringRegenTimer) {
+        scene.ringRegenTimer = {
+            inner: { startTime: 0, currentRing: null },
+            middle: { startTime: 0, currentRing: null }
+        };
+    }
+
+    const timer = scene.ringRegenTimer;
+
+    // Inner ring regeneration
+    if (ringState === 'inner') {
+        if (timer.inner.currentRing !== 'inner') {
+            // Reset timer when entering inner ring
+            timer.inner.startTime = scene.time.now;
+            timer.inner.currentRing = 'inner';
+        }
+        
+        // Regenerate if in inner ring for at least 1 second
+        if (scene.time.now - timer.inner.startTime >= 1000 && player.hits > 0) {
+            player.hits = Math.max(0, player.hits - 1);
+            timer.inner.startTime = scene.time.now; // Reset timer
+        }
+    } else {
+        timer.inner.currentRing = null;
+    }
+
+    // Middle ring regeneration
+    if (ringState === 'middle') {
+        if (timer.middle.currentRing !== 'middle') {
+            // Reset timer when entering middle ring
+            timer.middle.startTime = scene.time.now;
+            timer.middle.currentRing = 'middle';
+        }
+        
+        // Regenerate if in middle ring for at least 3 seconds
+        if (scene.time.now - timer.middle.startTime >= 3000 && player.hits > 0) {
+            player.hits = Math.max(0, player.hits - 1);
+            timer.middle.startTime = scene.time.now; // Reset timer
+        }
+    } else {
+        timer.middle.currentRing = null;
+    }
 }
 
 function updateRingColors(scene, player) {
@@ -477,6 +527,7 @@ function constrainPlayerPosition() {
 
 // Update individual enemy
 function updateEnemy(scene, enemy) {
+    if (!enemy || !enemy.active) return;
     // Chase player
     const angleToPlayer = Phaser.Math.Angle.Between(
         enemy.x, enemy.y, player.x, player.y
@@ -505,6 +556,7 @@ function updateEnemy(scene, enemy) {
 
 // Constrain enemy within arena
 function constrainEnemyPosition(enemy) {
+    if (!enemy || !enemy.active) return;
     const enemyDistanceFromCenter = Phaser.Math.Distance.Between(
         enemy.x, enemy.y, CENTER_X, CENTER_Y
     );
@@ -524,82 +576,140 @@ function constrainEnemyPosition(enemy) {
 }
 
 function createGameOverUI(scene) {
-    // Create a semi-transparent overlay
+    // Fade-in blur overlay
     const overlay = scene.add.rectangle(
         scene.game.config.width / 2, 
         scene.game.config.height / 2, 
         scene.game.config.width, 
         scene.game.config.height, 
         0x000000, 
-        0.7
+        0
     );
     overlay.setScrollFactor(0);
-    overlay.setDepth(2000);
+    overlay.setDepth(1999);
+    
+    // Fade in blur effect
+    scene.tweens.add({
+        targets: overlay,
+        alpha: 0.5,
+        duration: 500,
+        ease: 'Cubic.easeOut'
+    });
 
-    // Game Over text
-    const gameOverText = scene.add.text(
+    // Create a compact game over container
+    const gameOverContainer = scene.add.container(
         scene.game.config.width / 2, 
-        scene.game.config.height / 2 - 100, 
-        'GAME OVER', 
-        {
-            fontFamily: 'Arial Black',
-            fontSize: '64px',
-            color: '#FF0000',
-            stroke: '#FFFFFF',
-            strokeThickness: 6
-        }
+        scene.game.config.height / 2
     );
-    gameOverText.setOrigin(0.5);
-    gameOverText.setScrollFactor(0);
-    gameOverText.setDepth(2001);
+    gameOverContainer.setDepth(2000);
+    gameOverContainer.setAlpha(0);
 
-    // Score text
-    const scoreText = scene.add.text(
-        scene.game.config.width / 2, 
-        scene.game.config.height / 2, 
-        `ENEMIES DESTROYED: ${enemiesDestroyed}`, 
-        {
-            fontFamily: 'Arial',
-            fontSize: '32px',
-            color: '#00FFFF',
-            stroke: '#0066FF',
+    // Stylized background rectangle
+    const background = scene.add.rectangle(
+        0, 0, 350, 300, 0x4A4A6A, 0.9
+    );
+    background.setStrokeStyle(4, 0xD3D3D3, 0.5);
+
+    // Fantasy-style Game Over text
+    const gameOverText = scene.add.text(
+        0, -100, 'Game Over', {
+            fontFamily: 'Papyrus, Fantasy',
+            fontSize: '40px',
+            color: '#D4AF37',
+            stroke: '#8B4513',
             strokeThickness: 4
         }
     );
-    scoreText.setOrigin(0.5);
-    scoreText.setScrollFactor(0);
-    scoreText.setDepth(2001);
+    gameOverText.setOrigin(0.5);
 
-    // Play Again button
+    // Score text
+    const scoreText = scene.add.text(
+        0, -20, `Enemies Destroyed: ${enemiesDestroyed}`, {
+            fontFamily: 'Palatino Linotype, serif',
+            fontSize: '24px',
+            color: '#A0D6B4'
+        }
+    );
+    scoreText.setOrigin(0.5);
+
     const playAgainButton = scene.add.text(
-        scene.game.config.width / 2, 
-        scene.game.config.height / 2 + 100, 
-        'PLAY AGAIN', 
-        {
-            fontFamily: 'Arial Black',
-            fontSize: '32px',
-            color: '#00FF00',
-            backgroundColor: '#333333',
+        0, 80, 'Play Again?', {
+            fontFamily: 'Papyrus, Fantasy',
+            fontSize: '28px',
+            color: '#B0E0E6',
+            backgroundColor: '#2F4F4F',
             padding: 10
         }
     );
     playAgainButton.setOrigin(0.5);
-    playAgainButton.setScrollFactor(0);
-    playAgainButton.setDepth(2001);
     playAgainButton.setInteractive();
-    
+
+    // Hover effect
+    playAgainButton.on('pointerover', () => {
+        scene.tweens.add({
+            targets: playAgainButton,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 100,
+            ease: 'Power1'
+        });
+    });
+
+    // Hover out effect
+    playAgainButton.on('pointerout', () => {
+        scene.tweens.add({
+            targets: playAgainButton,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 100,
+            ease: 'Power1'
+        });
+    });
+
+    // Click effect
     playAgainButton.on('pointerdown', () => {
-        resetGame(scene);
+        // Button press visual effect
+        scene.tweens.add({
+            targets: playAgainButton,
+            scaleX: 0.9,
+            scaleY: 0.9,
+            duration: 50,
+            yoyo: true,
+            ease: 'Power1'
+        });
+
+        // Fade out entire game over screen
+        scene.tweens.add({
+            targets: [overlay, gameOverContainer],
+            alpha: 0,
+            duration: 500,
+            ease: 'Cubic.easeIn',
+            onComplete: () => {
+                overlay.destroy();
+                gameOverContainer.destroy();
+                resetGame(scene);
+            }
+        });
     });
 
-    // Create a group to manage game over elements
-    gameOverGroup = scene.add.group([overlay, gameOverText, scoreText, playAgainButton]);
-    gameOverGroup.children.entries.forEach(item => {
-        item.setScrollFactor(0);
-        item.setDepth(2000);
+    // Add elements to container
+    gameOverContainer.add([
+        background, 
+        gameOverText, 
+        scoreText, 
+        playAgainButton
+    ]);
+
+    // Fade in game over container
+    scene.tweens.add({
+        targets: gameOverContainer,
+        alpha: 1,
+        duration: 500,
+        delay: 500,
+        ease: 'Cubic.easeOut'
     });
 
-    return gameOverGroup;
+    return gameOverContainer;
 }
 
 function resetGame(scene) {
@@ -621,10 +731,6 @@ function resetGame(scene) {
 
     // Clear existing enemies
     enemies.clear(true, true);
-
-    // Recreate UI elements
-    scoreText = createScoreUI(scene);
-    healthBar = createHealthBar(scene);
 
     // Recreate enemy spawner
     scene.time.addEvent({
@@ -695,10 +801,14 @@ function handleEnemyEnemyCollision(enemy1, enemy2) {
 function update() {
     
     if (isGameOver) return;
+
+    updateScoreUI(this, scoreText, enemiesDestroyed);
     
     handlePlayerMovement();
     updatePlayerVelocity(this);
     constrainPlayerPosition();
+
+    handleRingHealthRegeneration(this);
 
     // Create a copy of enemies to safely iterate
     const enemyList = [...enemies.children.entries];
