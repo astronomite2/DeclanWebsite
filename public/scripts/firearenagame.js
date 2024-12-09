@@ -442,12 +442,21 @@ function updatePlayerVelocity(scene) {
     if (Math.abs(player.velocity.y) < 0.1) player.velocity.y = 0;
 }
 
-function constrainPlayerPosition() {
-    // Update player position
+function screenShake(scene, intensity) {
+    scene.tweens.add({
+        targets: scene.cameras.main,
+        x: { from: -intensity, to: intensity },
+        y: { from: -intensity, to: intensity },
+        duration: 50,
+        yoyo: true,
+        ease: 'Quad.easeInOut'
+    });
+}
+
+function constrainPlayerPosition(scene) {
     player.x += player.velocity.x;
     player.y += player.velocity.y;
 
-    // Arena boundary constraint for player
     const distanceFromCenter = Phaser.Math.Distance.Between(
         player.x, player.y, CENTER_X, CENTER_Y
     );
@@ -473,9 +482,15 @@ function constrainPlayerPosition() {
         const dotProduct = incidentVelX * normalX + incidentVelY * normalY;
         
         // Reflect velocity across normal with some energy loss
-        const reflectionFactor = 0.8; // Adjustable energy loss factor
+        const reflectionFactor = 0.8;
         player.velocity.x = reflectionFactor * (incidentVelX - 2 * dotProduct * normalX);
         player.velocity.y = reflectionFactor * (incidentVelY - 2 * dotProduct * normalY);
+
+        // Screen shake intensity based on dot product
+        const shakeIntensity = Math.min(Math.abs(dotProduct) * 2, 5);
+        if (shakeIntensity > 0.5) {
+            screenShake(scene, shakeIntensity);
+        }
     }
 }
 
@@ -760,7 +775,7 @@ function update() {
     
     handlePlayerMovement();
     updatePlayerVelocity(this);
-    constrainPlayerPosition();
+    constrainPlayerPosition(this);
 
     handleRingHealthRegeneration(this);
 
