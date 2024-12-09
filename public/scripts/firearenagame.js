@@ -1,3 +1,7 @@
+// Import Firebase
+import { db, app} from "./firebaseAPI.js";
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, getFirestore, limit} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
 const config = {
     type: Phaser.AUTO,
     width: 800,
@@ -655,7 +659,7 @@ function constrainEnemyPosition(enemy) {
     }
 }
 
-function createGameOverUI(scene) {
+function createGameOverUI(scene, enemiesDestroyed) {
     // Fade-in blur overlay
     const overlay = scene.add.rectangle(
         scene.game.config.width / 2, 
@@ -667,7 +671,7 @@ function createGameOverUI(scene) {
     );
     overlay.setScrollFactor(0);
     overlay.setDepth(1999);
-    
+
     // Fade in blur effect
     scene.tweens.add({
         targets: overlay,
@@ -676,7 +680,7 @@ function createGameOverUI(scene) {
         ease: 'Cubic.easeOut'
     });
 
-    // Create a compact game over container
+    // Create a larger game over container to accommodate leaderboard
     const gameOverContainer = scene.add.container(
         scene.game.config.width / 2, 
         scene.game.config.height / 2
@@ -684,69 +688,115 @@ function createGameOverUI(scene) {
     gameOverContainer.setDepth(2000);
     gameOverContainer.setAlpha(0);
 
-    // Stylized background rectangle
+    // Stylized background rectangle (increased size)
     const background = scene.add.rectangle(
-        0, 0, 350, 300, 0x4A4A6A, 0.9
+        0, 0, 500, 600, 0x4A4A6A, 0.9
     );
     background.setStrokeStyle(4, 0xD3D3D3, 0.5);
 
     // Fantasy-style Game Over text
     const gameOverText = scene.add.text(
-        0, -100, 'Game Over', {
-            fontFamily: 'Papyrus, Fantasy',
-            fontSize: '40px',
-            color: '#D4AF37',
-            stroke: '#8B4513',
-            strokeThickness: 4
+        0, -250, 'Game Over', 
+        { 
+            fontFamily: 'Papyrus, Fantasy', 
+            fontSize: '40px', 
+            color: '#D4AF37', 
+            stroke: '#8B4513', 
+            strokeThickness: 4 
         }
     );
     gameOverText.setOrigin(0.5);
 
     // Score text
     const scoreText = scene.add.text(
-        0, -20, `Enemies Destroyed: ${enemiesDestroyed}`, {
-            fontFamily: 'Palatino Linotype, serif',
-            fontSize: '24px',
-            color: '#A0D6B4'
+        0, -180, 
+        `Enemies Destroyed: ${enemiesDestroyed}`, 
+        { 
+            fontFamily: 'Palatino Linotype, serif', 
+            fontSize: '24px', 
+            color: '#A0D6B4' 
         }
     );
     scoreText.setOrigin(0.5);
 
+    // Leaderboard title
+    const leaderboardTitle = scene.add.text(
+        0, -120, 'Leaderboard', 
+        { 
+            fontFamily: 'Papyrus, Fantasy', 
+            fontSize: '30px', 
+            color: '#D3D3D3' 
+        }
+    );
+    leaderboardTitle.setOrigin(0.5);
+
+    // Leaderboard mask for scrolling
+    const leaderboardMask = scene.add.rectangle(
+        0, 0, 400, 200, 0x000000
+    );
+    leaderboardMask.setVisible(false);
+
+    // Leaderboard container
+    const leaderboardContainer = scene.add.container(0, -30);
+    leaderboardContainer.setMask(
+        new Phaser.Display.Masks.GeometryMask(scene, leaderboardMask)
+    );
+
+    // Buttons container
+    const buttonsContainer = scene.add.container(0, 230);
+
+    // Play Again button
     const playAgainButton = scene.add.text(
-        0, 80, 'Play Again?', {
-            fontFamily: 'Papyrus, Fantasy',
-            fontSize: '28px',
-            color: '#B0E0E6',
-            backgroundColor: '#2F4F4F',
-            padding: 10
+        -100, 0, 'Play Again', 
+        { 
+            fontFamily: 'Papyrus, Fantasy', 
+            fontSize: '28px', 
+            color: '#B0E0E6', 
+            backgroundColor: '#2F4F4F', 
+            padding: 10 
         }
     );
     playAgainButton.setOrigin(0.5);
     playAgainButton.setInteractive();
 
-    // Hover effect
-    playAgainButton.on('pointerover', () => {
-        scene.tweens.add({
-            targets: playAgainButton,
-            scaleX: 1.1,
-            scaleY: 1.1,
-            duration: 100,
-            ease: 'Power1'
+    // Main Menu button
+    const mainMenuButton = scene.add.text(
+        100, 0, 'Main Menu', 
+        { 
+            fontFamily: 'Papyrus, Fantasy', 
+            fontSize: '28px', 
+            color: '#B0E0E6', 
+            backgroundColor: '#2F4F4F', 
+            padding: 10 
+        }
+    );
+    mainMenuButton.setOrigin(0.5);
+    mainMenuButton.setInteractive();
+
+    // Button hover and click effects (apply to both buttons)
+    [playAgainButton, mainMenuButton].forEach(button => {
+        button.on('pointerover', () => {
+            scene.tweens.add({
+                targets: button,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 100,
+                ease: 'Power1'
+            });
+        });
+
+        button.on('pointerout', () => {
+            scene.tweens.add({
+                targets: button,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 100,
+                ease: 'Power1'
+            });
         });
     });
 
-    // Hover out effect
-    playAgainButton.on('pointerout', () => {
-        scene.tweens.add({
-            targets: playAgainButton,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 100,
-            ease: 'Power1'
-        });
-    });
-
-    // Click effect
+    // Play Again button click effect
     playAgainButton.on('pointerdown', () => {
         // Button press visual effect
         scene.tweens.add({
@@ -772,13 +822,108 @@ function createGameOverUI(scene) {
         });
     });
 
+    // Main Menu button click effect
+    mainMenuButton.on('pointerdown', () => {
+        // Button press visual effect
+        scene.tweens.add({
+            targets: mainMenuButton,
+            scaleX: 0.9,
+            scaleY: 0.9,
+            duration: 50,
+            yoyo: true,
+            ease: 'Power1'
+        });
+
+        // Transition to main menu
+        scene.tweens.add({
+            targets: [overlay, gameOverContainer],
+            alpha: 0,
+            duration: 500,
+            ease: 'Cubic.easeIn',
+            onComplete: () => {
+                overlay.destroy();
+                gameOverContainer.destroy();
+                scene.scene.start('MainMenuScene');
+            }
+        });
+    });
+
+    // Function to populate and update leaderboard
+async function updateLeaderboard() {
+    try {
+        // Fetch top 25 scores from Firestore
+        const leaderboardRef = collection(db, 'leaderboard');
+        const q = query(leaderboardRef, orderBy('score', 'desc'), limit(25));
+
+        const snapshot = await getDocs(q);
+        
+        // Clear existing leaderboard entries
+        leaderboardContainer.removeAll(true);
+
+        // Color mapping for top 3 places
+        const placeColors = [
+            '#FFD700', // Gold (1st)
+            '#C0C0C0', // Silver (2nd)
+            '#CD7F32'  // Bronze (3rd)
+        ];
+
+        // Populate leaderboard
+        snapshot.forEach((doc, index) => {
+            const data = doc.data();
+            const entryColor = index < 3 ? placeColors[index] : '#FFFFFF';
+            
+            const nameText = scene.add.text(
+                -150, index * 40, data.name, 
+                { 
+                    fontFamily: 'Arial, sans-serif', 
+                    fontSize: '22px', 
+                    color: entryColor 
+                }
+            );
+
+            const scoreText = scene.add.text(
+                150, index * 40, data.score.toString(), 
+                { 
+                    fontFamily: 'Arial, sans-serif', 
+                    fontSize: '22px', 
+                    color: entryColor 
+                }
+            );
+
+            leaderboardContainer.add([nameText, scoreText]);
+        });
+    } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+    }
+}
+
+// Function to submit score to Firestore
+async function submitScore(playerName, score) {
+    try {
+        await addDoc(collection(db, 'leaderboard'), {
+            "Enemies Destroyed": score,
+            Name: playerName,
+            Time: serverTimestamp()
+        });
+        
+        // Update leaderboard after submission
+        updateLeaderboard();
+    } catch (error) {
+        console.error('Error submitting score:', error);
+    }
+}
+
     // Add elements to container
     gameOverContainer.add([
         background, 
         gameOverText, 
         scoreText, 
-        playAgainButton
+        leaderboardTitle,
+        leaderboardContainer,
+        buttonsContainer
     ]);
+
+    buttonsContainer.add([playAgainButton, mainMenuButton]);
 
     // Fade in game over container
     scene.tweens.add({
@@ -786,11 +931,24 @@ function createGameOverUI(scene) {
         alpha: 1,
         duration: 500,
         delay: 500,
-        ease: 'Cubic.easeOut'
+        ease: 'Cubic.easeOut',
+        onComplete: () => {
+            // Trigger leaderboard update after UI is shown
+            updateLeaderboard();
+            
+            // Prompt for player name and submit score
+            const playerName = prompt('Enter your name for the leaderboard:');
+            if (playerName) {
+                submitScore(playerName, enemiesDestroyed);
+            }
+        }
     });
 
     return gameOverContainer;
 }
+
+// Note: Ensure firebaseAPI.js is included before this script
+// Requires Firebase and Firestore to be initialized
 
 function resetGame(scene) {
     // Reset game state
@@ -832,7 +990,7 @@ function handleEnemyPlayerCollision(scene, enemy) {
             (enemy.x + player.x) / 2, 
             (enemy.y + player.y) / 2
         );
-        
+
         // Elastic collision
         handleCollision(player, enemy);
 
