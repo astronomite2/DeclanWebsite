@@ -1,42 +1,101 @@
-body {
+body, html {
     margin: 0;
+    padding: 0;
+    height: 100%;
     overflow: hidden;
-    background-color: #1a1a2e;
+    background-color: rgba(0, 0, 32, 0.7);;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     font-family: 'Arial', sans-serif;
 }
 
-#game-container {
+/* Fullscreen starry background with multiple star layers */
+body::before, body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Deep space background gradient */
+body::before {
+    background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+}
+
+/* Base background with fixed positioning */
+html {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    background-color: black;
+}
+
+/* Small stars layer */
+html::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(#ffffff 1px, transparent 1px),
+        radial-gradient(#ffffff 1px, transparent 1px);
+    background-size: 50px 50px;
+    background-position: 0 0, 25px 25px;
+    opacity: 1;
+    animation: twinkle 3s infinite alternate;
+    z-index: -1;
+}
+
+/* Additional large star layer */
+html::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(#ffffff 2px, transparent 2px);
+    background-size: 100px 100px;
+    background-position: 0 0, 50px 50px;
+    opacity: 1;
+    animation: slowTwinkle 5s infinite alternate;
+    z-index: -1;
+}
+
+/* Twinkling star effect for small stars */
+@keyframes twinkle {
+    0% {
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 0.7;
+    }
+}
+
+/* Slower twinkling for larger stars */
+@keyframes slowTwinkle {
+    0% {
+        opacity: 0.1;
+    }
+    100% {
+        opacity: 0.4;
+    }
+}
+
+/* Ensure content remains fully visible */
+body {
     position: relative;
-    width: 800px;
-    height: 600px;
-    border: 4px solid #4a4e69;
-    background-color: #16213e;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1;
 }
 
-.player-sprite {
-    position: absolute;
-    width: 50px;
-    height: 50px;
-    background-color: #0f9;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-}
-
-.arena {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    height: 90%;
-    border-radius: 50%;
-    background-color: #2c3e50;
-    border: 15px solid #e74c3c;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-}

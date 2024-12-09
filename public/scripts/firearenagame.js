@@ -2,6 +2,7 @@ const config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
+    transparent: true,
     scene: {
         preload: preload,
         create: create,
@@ -10,6 +11,10 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
+
+// Global variable to track game over state
+let isGameOver = false;
+let gameOverGroup;
 
 let player;
 let cursors;
@@ -44,6 +49,18 @@ function preload() {
 }
 
 function create() {
+    // Create a transparent overlay for smoother transitions
+    this.overlay = this.add.rectangle(
+        this.game.config.width / 2, 
+        this.game.config.height / 2, 
+        this.game.config.width, 
+        this.game.config.height, 
+        0xFFFFFF, 
+        0
+    );
+    this.overlay.setScrollFactor(0);
+    this.overlay.setDepth(1000); // Ensure it's on top of everything else
+    
     // Create graphics for circles
     this.arenagraphics = this.add.graphics();
 
@@ -120,7 +137,7 @@ function createScoreUI(scene) {
             fill: true
         }
     });
-    scoreText.setOrigin(0.5, 0);
+    scoreText.setOrigin(0.6, 0);
     scoreText.setScrollFactor(0); // Fixed position on screen
     return scoreText;
 }
@@ -153,7 +170,7 @@ function createHealthBar(scene) {
     };
 }
 
-function updateHealthBar(healthBar, currentHits, maxHits) {
+function updateHealthBar(scene, healthBar, currentHits, maxHits) {
     const healthPercentage = 1 - (currentHits / maxHits);
     const barWidth = 200 * healthPercentage;
     
@@ -169,16 +186,20 @@ function updateHealthBar(healthBar, currentHits, maxHits) {
         healthBar.bar.fillColor = 0xFF0000; // Red
     }
     
-    // Add shake effect when health is low
-    if (healthPercentage < 0.25) {
-        this.tweens.add({
-            targets: [healthBar.background, healthBar.bar],
-            x: '+=5',
-            yoyo: true,
-            duration: 50,
-            repeat: 2
-        });
-    }
+    //Broken code claude can't figure this out
+    // // Add shake effect when health is low
+    // if (healthPercentage < 0.25) {
+    //     scene.tweens.add({
+    //         targets: [healthBar.background, healthBar.bar],
+    //         angle: [
+    //             { value: -10, duration: 30 },
+    //             { value: 10, duration: 30 },
+    //             { value: -10, duration: 30 },
+    //             { value: 0, duration: 30 }
+    //         ],
+    //         ease: 'Sine.easeInOut'
+    //     });
+    // }
 }
 
 function determinePlayerRingState(player) {
@@ -187,14 +208,14 @@ function determinePlayerRingState(player) {
     );
     
     let ringState = 'outer';
-    let ringColor = 0x0000FF;
+    let ringColor = 0x6e6e6e;
     
     if (distanceFromCenter <= OUTER_RADIUS * 1/3) {
         ringState = 'inner';
-        ringColor = 0xFF0000;
+        ringColor = 0xf5f5f5;
     } else if (distanceFromCenter <= OUTER_RADIUS * 2/3) {
         ringState = 'middle';
-        ringColor = 0x00FF00;
+        ringColor = 0xb8b8b8;
     }
     
     return { ringState, ringColor };
@@ -207,19 +228,19 @@ function updateRingColors(scene, player) {
     scene.arenagraphics.clear();
     
     // Outer circle
-    scene.arenagraphics.fillStyle(0x0000FF, ringState === 'outer' ? 0.6 : 0.3);
+    ringState === 'outer' ? scene.arenagraphics.fillStyle(0x0000FF, 0.5) : scene.arenagraphics.fillStyle(0x1b2735, 0.8);
     scene.arenagraphics.lineStyle(2, 0xffffff, 1);
     scene.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
     scene.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS));
 
     // Middle circle
-    scene.arenagraphics.fillStyle(0x00FF00, ringState === 'middle' ? 0.6 : 0.3);
+    ringState === 'middle' ? scene.arenagraphics.fillStyle(0x00FF00, 0.5) : scene.arenagraphics.fillStyle(0x1b2735, 0.8);
     scene.arenagraphics.lineStyle(2, 0xffffff, 1);
     scene.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
     scene.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 2/3));
 
     // Inner circle
-    scene.arenagraphics.fillStyle(0xFF0000, ringState === 'inner' ? 0.6 : 0.3);
+    ringState === 'inner' ? scene.arenagraphics.fillStyle(0xFF0000, 0.5) : scene.arenagraphics.fillStyle(0x1b2735, 0.8);
     scene.arenagraphics.lineStyle(2, 0xffffff, 1);
     scene.arenagraphics.strokeCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
     scene.arenagraphics.fillCircleShape(new Phaser.Geom.Circle(CENTER_X, CENTER_Y, OUTER_RADIUS * 1/3));
@@ -502,8 +523,122 @@ function constrainEnemyPosition(enemy) {
     }
 }
 
+function createGameOverUI(scene) {
+    // Create a semi-transparent overlay
+    const overlay = scene.add.rectangle(
+        scene.game.config.width / 2, 
+        scene.game.config.height / 2, 
+        scene.game.config.width, 
+        scene.game.config.height, 
+        0x000000, 
+        0.7
+    );
+    overlay.setScrollFactor(0);
+    overlay.setDepth(2000);
+
+    // Game Over text
+    const gameOverText = scene.add.text(
+        scene.game.config.width / 2, 
+        scene.game.config.height / 2 - 100, 
+        'GAME OVER', 
+        {
+            fontFamily: 'Arial Black',
+            fontSize: '64px',
+            color: '#FF0000',
+            stroke: '#FFFFFF',
+            strokeThickness: 6
+        }
+    );
+    gameOverText.setOrigin(0.5);
+    gameOverText.setScrollFactor(0);
+    gameOverText.setDepth(2001);
+
+    // Score text
+    const scoreText = scene.add.text(
+        scene.game.config.width / 2, 
+        scene.game.config.height / 2, 
+        `ENEMIES DESTROYED: ${enemiesDestroyed}`, 
+        {
+            fontFamily: 'Arial',
+            fontSize: '32px',
+            color: '#00FFFF',
+            stroke: '#0066FF',
+            strokeThickness: 4
+        }
+    );
+    scoreText.setOrigin(0.5);
+    scoreText.setScrollFactor(0);
+    scoreText.setDepth(2001);
+
+    // Play Again button
+    const playAgainButton = scene.add.text(
+        scene.game.config.width / 2, 
+        scene.game.config.height / 2 + 100, 
+        'PLAY AGAIN', 
+        {
+            fontFamily: 'Arial Black',
+            fontSize: '32px',
+            color: '#00FF00',
+            backgroundColor: '#333333',
+            padding: 10
+        }
+    );
+    playAgainButton.setOrigin(0.5);
+    playAgainButton.setScrollFactor(0);
+    playAgainButton.setDepth(2001);
+    playAgainButton.setInteractive();
+    
+    playAgainButton.on('pointerdown', () => {
+        resetGame(scene);
+    });
+
+    // Create a group to manage game over elements
+    gameOverGroup = scene.add.group([overlay, gameOverText, scoreText, playAgainButton]);
+    gameOverGroup.children.entries.forEach(item => {
+        item.setScrollFactor(0);
+        item.setDepth(2000);
+    });
+
+    return gameOverGroup;
+}
+
+function resetGame(scene) {
+    // Reset game state
+    isGameOver = false;
+    enemiesDestroyed = 0;
+
+    // Destroy existing game over UI
+    if (gameOverGroup) {
+        gameOverGroup.clear(true, true);
+    }
+
+    // Recreate player
+    player = scene.add.circle(CENTER_X, CENTER_Y, 20, 0xffffff);
+    player.velocity = { x: 0, y: 0 };
+    player.hits = 0;
+    player.originalRadius = 20;
+    player.mass = 1;
+
+    // Clear existing enemies
+    enemies.clear(true, true);
+
+    // Recreate UI elements
+    scoreText = createScoreUI(scene);
+    healthBar = createHealthBar(scene);
+
+    // Recreate enemy spawner
+    scene.time.addEvent({
+        delay: ENEMY_SPAWN_INTERVAL,
+        callback: spawnEnemy,
+        callbackScope: scene,
+        loop: true
+    });
+}
+
 // Handle collision between player and enemy
-function handleEnemyPlayerCollision(enemy) {
+function handleEnemyPlayerCollision(scene, enemy) {
+    if (isGameOver) return;
+    
     const distanceToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
     if (distanceToPlayer < (enemy.radius + player.radius)) {
         // Elastic collision
@@ -513,6 +648,8 @@ function handleEnemyPlayerCollision(enemy) {
         enemy.hits++;
         if (enemy.hits >= 2) {
             enemy.destroy();
+            enemiesDestroyed++;
+            updateScoreUI(scene, scoreText, enemiesDestroyed);
             enemies.remove(enemy);
         }
 
@@ -525,8 +662,20 @@ function handleEnemyPlayerCollision(enemy) {
 
         // Check if player is defeated
         if (player.hits >= MAX_PLAYER_HITS) {
-            player.destroy();
-            // You could add game over logic here
+             // Destroy player
+             player.destroy();
+            
+             // Set game over state
+             isGameOver = true;
+ 
+             // Stop enemy spawning
+             scene.time.removeAllEvents();
+ 
+             // Destroy all existing enemies
+             enemies.clear(true, true);
+ 
+             // Create game over UI
+             createGameOverUI(scene);
         }
     }
 }
@@ -544,6 +693,9 @@ function handleEnemyEnemyCollision(enemy1, enemy2) {
 
 // Main update method
 function update() {
+    
+    if (isGameOver) return;
+    
     handlePlayerMovement();
     updatePlayerVelocity(this);
     constrainPlayerPosition();
@@ -555,7 +707,7 @@ function update() {
     enemyList.forEach(enemy => {
         updateEnemy(this, enemy);
         constrainEnemyPosition(enemy);
-        handleEnemyPlayerCollision(enemy);
+        handleEnemyPlayerCollision(this,enemy);
 
         enemyList.forEach(otherEnemy => {
             if (!otherEnemy || enemy === otherEnemy) return;
@@ -563,16 +715,9 @@ function update() {
             handleEnemyEnemyCollision(enemy, otherEnemy);
         });
     });
-
-    // Update score when enemies are destroyed
-    const previousEnemyCount = enemiesDestroyed;
-    enemiesDestroyed = MAX_PLAYER_HITS - player.hits;
-    if (enemiesDestroyed !== previousEnemyCount) {
-        updateScoreUI(this, scoreText, enemiesDestroyed);
-    }
     
     // Update health bar
-    updateHealthBar(healthBar, player.hits, MAX_PLAYER_HITS);
+    updateHealthBar(this, healthBar, player.hits, MAX_PLAYER_HITS);
     
     // Update ring colors and get current ring state
     const currentRingState = updateRingColors(this, player);
