@@ -2,6 +2,7 @@
 import { db, app} from "./firebaseAPI.js";
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, getFirestore, limit} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+// edit
 const config = {
     type: Phaser.AUTO,
     width: 800,
