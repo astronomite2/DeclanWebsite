@@ -99,3 +99,10 @@ body {
     z-index: 1;
 }
 
+#game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 800px;
+    height: 600px;
+}
