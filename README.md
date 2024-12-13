@@ -19,4 +19,4 @@
 
 Smash, score, survive, in **Billiard Bash**!
 
-![Billiard Bash GIF](https://giphy.com/embed/Yvg9KlopIE3cvX9xmN)
+![Billiard Bash GIF](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExN3FzdWFuaTIwcnM2cjJvdzUzd3YzMHc5Y2x5MHE2djMwMXAzbTk1ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Yvg9KlopIE3cvX9xmN/giphy.webp)
