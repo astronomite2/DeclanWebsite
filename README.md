@@ -1,6 +1,8 @@
 # DeclanWebsite
 ## Billiard Bash: Game Overview
 
+**Navigate through the drop-down on the main website page to access the billiard bash game**
+
 **Billiard Bash** is an action-packed arcade game set in a circular arena where you control a player ball to outmaneuver and destroy enemies while managing your health and score.
 
 ### How to Play
